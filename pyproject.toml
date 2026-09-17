@@ -1,0 +1,51 @@
+[project]
+name = "arc-agi-3"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Siddartha Koppaka", email = "siddarthakoppaka@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.12",
+    "typer>=0.16",
+]
+
+[project.optional-dependencies]
+arc = ["arc-agi==0.9.8"]
+analytics = ["pyarrow>=18"]
+
+[project.scripts]
+arc-agi-3 = "arc_agi_3:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.138",
+    "mypy>=1.17",
+    "pytest>=8.4",
+    "pytest-cov>=6.2",
+    "ruff>=0.12",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.mypy]
+strict = true
+packages = ["arc_agi_3"]
+
+[[tool.mypy.overrides]]
+module = ["arcengine", "arcengine.*", "pyarrow", "pyarrow.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

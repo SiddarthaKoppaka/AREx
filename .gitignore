@@ -1,0 +1,41 @@
+# Local research, planning, and agent instructions
+docs/
+.agents/
+AGENTS.md
+
+# Competition datasets, reference checkouts, and archives
+arc-prize-2026-arc-agi-3/
+arc-prize-2026-arc-agi-3.zip
+
+# Secrets and local environment overrides
+.env
+.env.*
+!.env.example
+
+# Python environments and caches
+.venv/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+coverage.xml
+htmlcov/
+.hypothesis/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Builds, runtime artifacts, and derived research data
+dist/
+build/
+runs/
+recordings/
+tmp/
+*.jsonl
+*.sqlite
+*.sqlite3
+*.parquet
+
+# Notebook and operating-system noise
+.ipynb_checkpoints/
+.DS_Store
