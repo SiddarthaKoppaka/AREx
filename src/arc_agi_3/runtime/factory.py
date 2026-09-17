@@ -10,10 +10,12 @@ from arc_agi_3.manifest import RunManifest, build_manifest, write_manifest
 from arc_agi_3.trace.checkpoints import CheckpointStore
 from arc_agi_3.trace.store import JsonlEventStore
 
+from .io import EpisodeIO
 from .runner import EpisodeRunner
+from .session import CognitiveSession
 
 
-def build_runner(
+def build_session(
     config: RunConfig,
     environment: EnvironmentAdapter,
     model: ModelAdapter,
@@ -21,7 +23,7 @@ def build_runner(
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
     manifest: RunManifest | None = None,
-) -> EpisodeRunner:
+) -> CognitiveSession:
     run_dir = config.output_dir / config.run_id
     event_path = run_dir / "events.jsonl"
     if event_path.exists():
@@ -38,12 +40,31 @@ def build_runner(
         clock=clock,
         id_factory=id_factory,
     )
-    return EpisodeRunner(
-        config=config,
-        environment=environment,
-        model=model,
-        events=events,
-        checkpoints=CheckpointStore(run_dir / "checkpoints"),
-        ledger=BudgetLedger(config.budget.limits),
-        manifest=resolved_manifest,
+    io = EpisodeIO(
+        config,
+        environment,
+        events,
+        CheckpointStore(run_dir / "checkpoints"),
+        BudgetLedger(config.budget.limits),
     )
+    return CognitiveSession(io, model, resolved_manifest)
+
+
+def build_runner(
+    config: RunConfig,
+    environment: EnvironmentAdapter,
+    model: ModelAdapter,
+    *,
+    clock: Callable[[], datetime] | None = None,
+    id_factory: Callable[[], str] | None = None,
+    manifest: RunManifest | None = None,
+) -> EpisodeRunner:
+    session = build_session(
+        config,
+        environment,
+        model,
+        clock=clock,
+        id_factory=id_factory,
+        manifest=manifest,
+    )
+    return EpisodeRunner(environment=environment, session=session)

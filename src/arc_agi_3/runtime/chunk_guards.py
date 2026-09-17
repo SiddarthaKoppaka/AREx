@@ -10,7 +10,7 @@ from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.contracts.execution import ActionChunk
 from arc_agi_3.contracts.observation import Observation
 
-from .action import ActionOutcome
+from .action_types import ActionOutcome
 from .io import EpisodeIO
 
 

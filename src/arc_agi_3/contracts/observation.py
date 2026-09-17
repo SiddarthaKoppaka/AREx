@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from arc_agi_3.trace.canonical import canonical_hash
 
@@ -15,6 +15,16 @@ Frame = tuple[tuple[tuple[int, ...], ...], ...]
 class Action(Contract):
     action_id: int = Field(ge=0, le=7)
     data: dict[str, int | float | str | bool] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_coordinates(self) -> "Action":
+        if self.action_id != 6:
+            return self
+        for name in ("x", "y"):
+            value = self.data.get(name)
+            if type(value) is not int or not 0 <= value <= 63:
+                raise ValueError(f"ACTION6 requires integer {name} in [0, 63]")
+        return self
 
 
 class Observation(Contract):

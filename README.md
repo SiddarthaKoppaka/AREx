@@ -26,25 +26,27 @@ support—while keeping agency attributable to the LM.
 ## System
 
 ```mermaid
-flowchart LR
-    ENV[ARC Environment] -->|observation| RT[Episode Runtime]
-    RT --> CTX[Context Projection]
-    CTX --> LM[Language Model Agent]
-    LM -->|CognitiveDecision| RT
+flowchart TB
+  ENV[Local ARC Environment] <--> RUNNER[EpisodeRunner]
+  KAGGLE[Official Kaggle Agent Framework] <--> BRIDGE[KaggleAgentBridge]
+  RUNNER <--> SESSION[CognitiveSession]
+  BRIDGE <--> SESSION
+  SESSION --> CTX[Context Projection]
+  CTX --> LM[Language Model Agent]
+  LM -->|CognitiveDecision| SESSION
 
-    RT --> COG[Cognitive Workspace]
+  SESSION --> COG[Cognitive Workspace]
     COG --> MEM[Beliefs · Tasks · Plans]
     COG --> WM[World Models]
 
-    RT --> TOOLS[Deterministic Tools]
+  SESSION --> TOOLS[Deterministic Tools]
     TOOLS --> RET[Retrieval]
     TOOLS --> SEARCH[Search · Simulation]
     TOOLS --> VERIFY[Verification]
 
-    RT -->|authorized action| ENV
-    RT --> BUDGET[Budget Ledger]
-    RT --> TRACE[Immutable Event Trace]
-    RT --> CHECKPOINT[Checkpoints · Branches]
+  SESSION --> BUDGET[Budget Ledger]
+  SESSION --> TRACE[Immutable Event Trace]
+  SESSION --> CHECKPOINT[Checkpoints · Branches]
 
     TRACE --> REPLAY[Replay · Audit]
     TRACE --> EVAL[Evaluation · Exports]
@@ -53,7 +55,7 @@ flowchart LR
     classDef runtime fill:#dce8ff,stroke:#315b96,color:#171717;
     classDef record fill:#e5f4e8,stroke:#3f7650,color:#171717;
     class LM agent;
-    class RT,CTX,COG,TOOLS,BUDGET runtime;
+    class RUNNER,BRIDGE,SESSION,CTX,COG,TOOLS,BUDGET runtime;
     class TRACE,CHECKPOINT,REPLAY,EVAL record;
 ```
 
@@ -77,8 +79,8 @@ decides how to interpret the failure and what to try next.
 - **Research trace:** hash-chained JSONL events, normalized run manifests,
   checksummed checkpoints, deterministic metrics, typed ablations, and rebuildable
   SQLite/FTS5 and tabular exports.
-- **Replaceable adapters:** deterministic fakes, the official local ARC adapter,
-  structured model output, and a local Ollama backend.
+- **Replaceable adapters:** deterministic fakes, local ARC and Kaggle callback
+  boundaries, structured model output, local Ollama, and offline Transformers.
 
 Raw events and the run manifest are authoritative. Indexes, summaries, and
 analysis tables are derived artifacts that can be rebuilt from the trace.
@@ -89,16 +91,19 @@ The current implementation is a synchronous Python 3.12 runtime with Pydantic
 contracts and replaceable model/environment protocols. It includes:
 
 - the complete observation → decision → action → verification loop;
+- one callback-driven cognitive session shared by local and Kaggle outer loops;
 - deterministic fake adapters for golden replay and regression testing;
 - official offline ARC environment execution;
 - local schema-constrained Qwen inference through Ollama;
+- attached-weight Qwen inference through a lazy, offline Transformers backend;
 - cognitive workspace, search, simulation, recovery, branching, and replay;
 - CLI workflows for runs, trace verification, indexing, and export; and
 - a centralized-config notebook that imitates the Kaggle entrypoint.
 
 The local Qwen/`ls20` run was a one-turn integration smoke, not a solved-game or
-benchmark claim. Ollama is a development backend; the Kaggle submission still
-needs an attached-weight inference adapter behind the same model interface.
+benchmark claim. A leaderboard submission still requires packaging AREx, a
+Qwen3.5-compatible Transformers stack, and attached weights into the official
+Kaggle starter notebook.
 
 ## Run locally
 
@@ -136,7 +141,7 @@ derived research artifacts.
 
 ## Validation
 
-- 57 passing tests with 89.54% measured coverage
+- 63 passing tests with 89% measured coverage
 - Strict mypy, Ruff linting, and formatting
 - Source, wheel, and offline `pip --no-index` installation smokes
 - Deterministic golden trace replay

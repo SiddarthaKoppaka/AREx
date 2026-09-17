@@ -40,3 +40,9 @@ def test_non_execute_cannot_smuggle_action() -> None:
             mode=DecisionMode.INVESTIGATE,
             action=Action(action_id=1),
         )
+
+
+def test_action6_requires_competition_grid_coordinates() -> None:
+    assert Action(action_id=6, data={"x": 0, "y": 63}).data == {"x": 0, "y": 63}
+    with pytest.raises(ValueError, match="x"):
+        Action(action_id=6, data={"x": 64, "y": 0})
