@@ -4,10 +4,11 @@ from textwrap import dedent
 
 
 def cell(kind: str, cell_id: str, source: str) -> dict[str, object]:
+    language = "python" if kind == "code" else "markdown"
     result: dict[str, object] = {
         "cell_type": kind,
         "id": cell_id,
-        "metadata": {"language": "python"},
+        "metadata": {"id": cell_id, "language": language},
         "source": source,
     }
     if kind == "code":
@@ -48,7 +49,8 @@ def build(config: dict[str, object], agent_source: str) -> dict[str, object]:
             "    target = root / 'agents/templates/my_agent.py'",
             "    subprocess.run(['cp', '/tmp/my_agent.py', str(target)], check=True)",
             '    agents = "from .agent import Agent, Playback\\nfrom '
-            ".templates.my_agent import MyAgent\\nAVAILABLE_AGENTS = "
+            ".swarm import Swarm\\nfrom .templates.my_agent import MyAgent\\n"
+            "AVAILABLE_AGENTS = "
             "{'myagent': MyAgent}\\n\"",
             "    (root / 'agents/__init__.py').write_text(agents)",
             "    env = 'SCHEME=http\\nHOST=gateway\\nPORT=8001\\n' + "

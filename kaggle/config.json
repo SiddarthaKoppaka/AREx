@@ -5,11 +5,11 @@
     "accelerator": "nvidiaRtx6000",
     "competition_sources": ["arc-prize-2026-arc-agi-3"],
     "dataset_sources": ["siddarthakoppaka/arex-kaggle-wheelhouse"],
-    "model_sources": ["qwen-lm/qwen3.5/transformers/9b/1"]
+    "model_sources": ["arthurchariyasathian/qwen3-5-9b/pytorch/fp16/1"]
   },
   "runtime": {
     "wheelhouse": "/kaggle/input/arex-kaggle-wheelhouse",
-    "model_path": "/kaggle/input/qwen3.5/transformers/9b/1",
+    "model_path": "/kaggle/input/qwen3-5-9b/pytorch/fp16/1",
     "max_actions": 40,
     "max_model_calls": 4,
     "max_new_tokens": 2048,
