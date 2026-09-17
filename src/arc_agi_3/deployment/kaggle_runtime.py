@@ -50,7 +50,7 @@ def build_kaggle_bridge(
     )
     config = RunConfig(
         run_id=f"kaggle-{game_id}",
-        experiment_id="kaggle-qwen35-9b",
+        experiment_id="kaggle-qwen3-8b",
         game_id=game_id,
         max_turns=resolved.max_actions,
         output_dir=resolved.output_dir,

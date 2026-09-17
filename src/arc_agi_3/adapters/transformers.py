@@ -15,7 +15,7 @@ from .inference import BackendGeneration
 
 class TransformersConfig(Contract):
     model_path: str
-    model_name: str = "Qwen/Qwen3.5-9B"
+    model_name: str = "Qwen/Qwen3-8B"
     model_digest: str = "unresolved"
     max_new_tokens: int = Field(default=2048, gt=0)
     dtype: str = "auto"
@@ -28,35 +28,35 @@ class TransformersBackend:
         config: TransformersConfig,
         *,
         model: Any | None = None,
-        processor: Any | None = None,
+        tokenizer: Any | None = None,
     ) -> None:
-        if (model is None) != (processor is None):
-            raise ValueError("model and processor must be supplied together")
+        if (model is None) != (tokenizer is None):
+            raise ValueError("model and tokenizer must be supplied together")
         self.config = config
         if model is None:
-            self.model, self.processor = self._load()
+            self.model, self.tokenizer = self._load()
         else:
-            assert processor is not None
-            self.model, self.processor = model, processor
+            assert tokenizer is not None
+            self.model, self.tokenizer = model, tokenizer
 
     def _load(self) -> tuple[Any, Any]:
         try:
             transformers = import_module("transformers")
         except ImportError as error:
             raise RuntimeError(
-                "install a Qwen3.5-compatible Transformers build for Kaggle inference"
+                "install a Qwen3-compatible Transformers build for Kaggle inference"
             ) from error
         common = {"local_files_only": True, "trust_remote_code": False}
-        processor = transformers.AutoProcessor.from_pretrained(
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
             self.config.model_path, **common
         )
-        model = transformers.AutoModelForImageTextToText.from_pretrained(
+        model = transformers.AutoModelForCausalLM.from_pretrained(
             self.config.model_path,
             dtype=self.config.dtype,
             device_map=self.config.device_map,
             **common,
         )
-        return model.eval(), processor
+        return model.eval(), tokenizer
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -71,7 +71,7 @@ class TransformersBackend:
 
     def generate(self, prompt: str, json_schema: dict[str, Any]) -> BackendGeneration:
         grounded = prompt + "\nJSON_SCHEMA:\n" + canonical_json(json_schema)
-        inputs = self.processor.apply_chat_template(
+        inputs = self.tokenizer.apply_chat_template(
             [{"role": "user", "content": grounded}],
             tokenize=True,
             add_generation_prompt=True,
@@ -90,7 +90,7 @@ class TransformersBackend:
         )[0][input_tokens:]
         latency_ms = round((perf_counter() - started) * 1000)
         return BackendGeneration(
-            text=self.processor.decode(output, skip_special_tokens=True),
+            text=self.tokenizer.decode(output, skip_special_tokens=True),
             usage=ModelUsage(
                 input_tokens=input_tokens,
                 output_tokens=len(output),

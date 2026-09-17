@@ -1,15 +1,15 @@
 {
   "kernel": {
-    "id": "siddarthakoppaka/arex-arc-agi-3-qwen35-9b",
-    "title": "AREx ARC-AGI-3 Qwen3.5-9B",
+    "id": "siddarthakoppaka/arex-arc-agi-3-qwen3-8b",
+    "title": "AREx ARC-AGI-3 Qwen3-8B",
     "accelerator": "nvidiaRtx6000",
     "competition_sources": ["arc-prize-2026-arc-agi-3"],
     "dataset_sources": ["siddarthakoppaka/arex-kaggle-wheelhouse"],
-    "model_sources": ["arthurchariyasathian/qwen3-5-9b/pytorch/fp16/1"]
+    "model_sources": ["qwen-lm/qwen-3/transformers/8b/1"]
   },
   "runtime": {
     "wheelhouse": "/kaggle/input/arex-kaggle-wheelhouse",
-    "model_path": "/kaggle/input/qwen3-5-9b/pytorch/fp16/1",
+    "model_path": "/kaggle/input/qwen-3/transformers/8b/1",
     "max_actions": 40,
     "max_model_calls": 4,
     "max_new_tokens": 2048,

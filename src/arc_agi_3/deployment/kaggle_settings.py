@@ -11,7 +11,7 @@ from arc_agi_3.contracts.base import Contract
 class KaggleSettings(Contract):
     model_path: Path
     output_dir: Path = Path("/kaggle/working/arex-runs")
-    model_name: str = "Qwen/Qwen3.5-9B"
+    model_name: str = "Qwen/Qwen3-8B"
     model_digest: str = "unresolved"
     max_actions: int = Field(default=40, gt=0)
     max_model_calls: int = Field(default=4, gt=0)
