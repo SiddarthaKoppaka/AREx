@@ -1,0 +1,19 @@
+{
+  "id": "siddarthakoppaka/arex-arc-agi-3-qwen35-9b",
+  "title": "AREx ARC-AGI-3 Qwen3.5-9B",
+  "code_file": "submission.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": false,
+  "competition_sources": [
+    "arc-prize-2026-arc-agi-3"
+  ],
+  "dataset_sources": [
+    "siddarthakoppaka/arex-kaggle-wheelhouse"
+  ],
+  "model_sources": [
+    "qwen-lm/qwen3.5/transformers/9b/1"
+  ]
+}

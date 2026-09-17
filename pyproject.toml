@@ -15,6 +15,11 @@ dependencies = [
 [project.optional-dependencies]
 arc = ["arc-agi==0.9.8"]
 analytics = ["pyarrow>=18"]
+kaggle-inference = [
+    "accelerate==1.15.0",
+    "safetensors>=0.6",
+    "transformers==5.17.0",
+]
 
 [project.scripts]
 arc-agi-3 = "arc_agi_3:main"
@@ -34,6 +39,7 @@ dev = [
 
 [tool.pytest.ini_options]
 addopts = "-q"
+pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.mypy]
@@ -45,6 +51,7 @@ module = ["arcengine", "arcengine.*", "pyarrow", "pyarrow.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
+extend-exclude = ["*.ipynb"]
 line-length = 88
 
 [tool.ruff.lint]
