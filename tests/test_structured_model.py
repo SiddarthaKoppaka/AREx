@@ -9,6 +9,7 @@ from arc_agi_3.adapters.inference import BackendGeneration
 from arc_agi_3.adapters.structured_model import (
     StructuredModelAdapter,
     StructuredOutputError,
+    parse_json_object,
 )
 from arc_agi_3.contracts.decision import AgentContext, ModelUsage
 from arc_agi_3.testing import FakeLineEnvironment, successful_script
@@ -50,6 +51,35 @@ def test_invalid_json_is_repaired_by_the_model() -> None:
     assert "Preserve your decision semantics" in backend.prompts[1]
     assert "private chain-of-thought" in backend.prompts[0]
     assert "execute mode must set exactly one" in backend.prompts[0]
+    assert "Do not use Markdown code fences" in backend.prompts[0]
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        '{"status": "ok"}',
+        '```json\n{"status": "ok"}\n```',
+        'Result: {broken} then {"status": "ok"}',
+    ],
+)
+def test_parse_json_object_accepts_wrapped_output(output: str) -> None:
+    assert parse_json_object(output) == {"status": "ok"}
+
+
+def test_parse_json_object_rejects_missing_object() -> None:
+    with pytest.raises(json.JSONDecodeError, match="No valid JSON object"):
+        parse_json_object("```json\n[]\n```")
+
+
+def test_fenced_repair_keeps_cross_field_validation_strict() -> None:
+    invalid = successful_script()[0].model_dump(mode="json")
+    invalid["mode"] = "plan"
+    valid = json.dumps(successful_script()[0].model_dump(mode="json"))
+    backend = Backend([json.dumps(invalid), f"```json\n{valid}\n```"])
+    response = StructuredModelAdapter(backend).decide(context())
+    assert [attempt.valid for attempt in response.attempts] == [False, True]
+    assert "only execute decisions may authorize actions" in backend.prompts[1]
+    assert response.usage == ModelUsage(input_tokens=4, output_tokens=6, latency_ms=8)
 
 
 def test_cross_field_error_is_json_safe_for_repair() -> None:

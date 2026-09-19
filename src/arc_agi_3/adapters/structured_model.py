@@ -17,6 +17,30 @@ from .inference import InferenceBackend
 from .prompts import decision_prompt
 
 
+def parse_json_object(text: str) -> dict[str, object]:
+    """Extract the first valid JSON object from raw or wrapped model output."""
+    stripped = text.strip()
+    decoder = json.JSONDecoder()
+
+    for position, character in enumerate(stripped):
+        if character != "{":
+            continue
+
+        try:
+            value, _ = decoder.raw_decode(stripped[position:])
+        except json.JSONDecodeError:
+            continue
+
+        if isinstance(value, dict):
+            return value
+
+    raise json.JSONDecodeError(
+        "No valid JSON object found in model output",
+        stripped,
+        0,
+    )
+
+
 class StructuredOutputError(RuntimeError):
     def __init__(self, attempts: tuple[ModelAttempt, ...]) -> None:
         super().__init__("model did not produce a valid CognitiveDecision")
@@ -64,7 +88,9 @@ class StructuredModelAdapter:
             output_tokens += generated.usage.output_tokens
             latency_ms += generated.usage.latency_ms
             try:
-                decision = CognitiveDecision.model_validate(json.loads(generated.text))
+                decision = CognitiveDecision.model_validate(
+                    parse_json_object(generated.text)
+                )
             except (json.JSONDecodeError, ValidationError) as error:
                 validation_error = self._error(error)
                 attempts.append(

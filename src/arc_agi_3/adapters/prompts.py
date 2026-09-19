@@ -11,13 +11,16 @@ def decision_prompt(
     validation_error: str | None = None,
 ) -> str:
     base = (
-        "You are the agent. Return one CognitiveDecision as JSON matching the "
-        "provided schema. Own all semantic interpretation, intent, strategy, and "
-        "action choice. Do not provide private chain-of-thought; use only the "
-        "public assessment and intent fields. Structural invariants: execute mode "
-        "must set exactly one of action or action_chunk; every other mode must set "
-        "both to null. Recover mode must set recovery; every other mode must set "
-        "recovery to null.\nCONTEXT:\n" + canonical_json(context)
+        "You are the agent. Return exactly one CognitiveDecision as raw JSON "
+        "matching the provided schema. Do not use Markdown code fences, XML tags, "
+        "commentary, or text outside the JSON object. "
+        "Own all semantic interpretation, intent, strategy, and action choice. "
+        "Do not provide private chain-of-thought; use only concise public "
+        "assessment and intent fields. Structural invariants: execute mode must "
+        "set exactly one of action or action_chunk; every other mode must set "
+        "both action and action_chunk to null. Recover mode must set recovery; "
+        "every other mode must set recovery to null.\nCONTEXT:\n"
+        + canonical_json(context)
     )
     if validation_error is None:
         return base
