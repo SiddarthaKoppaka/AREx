@@ -3,7 +3,12 @@
 import json
 from pathlib import Path
 
-from scripts.submission_cells import build
+from arc_agi_3.settings import resolve_runtime
+
+try:
+    from scripts.submission_cells import build
+except ModuleNotFoundError:
+    from submission_cells import build
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "kaggle" / "config.json"
@@ -12,10 +17,27 @@ NOTEBOOK = ROOT / "kaggle" / "submission.ipynb"
 METADATA = ROOT / "kaggle" / "kernel-metadata.json"
 
 
-def main() -> None:
-    config = json.loads(CONFIG.read_text())
-    notebook = build(config, AGENT.read_text())
+def resolved_config() -> dict[str, object]:
+    config: dict[str, object] = json.loads(CONFIG.read_text())
     kernel = config["kernel"]
+    assert isinstance(kernel, dict)
+    source = kernel["model_sources"][0]
+    _, slug, framework, variation, version = source.split("/")
+    mount = f"/kaggle/input/{slug}/{framework}/{variation}/{version}"
+    profile = resolve_runtime("kaggle_submission", environ={})
+    if str(profile.model_path) != mount:
+        raise ValueError("Kaggle profile model_path differs from attached model source")
+    runtime = config["runtime"]
+    assert isinstance(runtime, dict)
+    runtime.update(profile=profile.profile, model_path=mount)
+    return config
+
+
+def main() -> None:
+    config = resolved_config()
+    kernel = config["kernel"]
+    assert isinstance(kernel, dict)
+    notebook = build(config, AGENT.read_text())
     metadata = {
         "id": kernel["id"],
         "title": kernel["title"],

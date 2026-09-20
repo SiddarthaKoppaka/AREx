@@ -3,11 +3,11 @@
 import json
 from pathlib import Path
 
-from scripts.build_submission_notebook import AGENT, CONFIG, build
+from scripts.build_submission_notebook import AGENT, CONFIG, build, resolved_config
 
 
 def test_submission_notebook_contract() -> None:
-    config = json.loads(CONFIG.read_text())
+    config = resolved_config()
     notebook = build(config, AGENT.read_text())
     cells = notebook["cells"]
     assert [item["metadata"]["id"] for item in cells] == [
@@ -41,7 +41,9 @@ def test_central_config_declares_all_attached_resources() -> None:
     assert kernel["dataset_sources"]
     assert kernel["model_sources"]
     assert Path(config["runtime"]["wheelhouse"]).is_absolute()
-    assert Path(config["runtime"]["model_path"]).is_absolute()
     _, slug, framework, variation, version = kernel["model_sources"][0].split("/")
     expected_mount = f"/kaggle/input/{slug}/{framework}/{variation}/{version}"
-    assert config["runtime"]["model_path"] == expected_mount
+    notebook = build(resolved_config(), AGENT.read_text())
+    source = "\n".join(str(cell["source"]) for cell in notebook["cells"])
+    assert f"AREX_MODEL_PATH'] = '{expected_mount}'" in source
+    assert "AREX_PROFILE'] = 'kaggle_submission'" in source

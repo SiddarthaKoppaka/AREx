@@ -74,6 +74,8 @@ class RunConfig(Contract):
     max_turns: int = Field(default=16, gt=0)
     output_dir: Path = Field(default=Path("runs"), exclude=True)
     checkpoint_every: int = Field(default=1, gt=0)
+    recent_event_limit: int = Field(default=8, gt=0)
+    context_compaction: bool = True
     budget: BudgetConfig = Field(default_factory=BudgetConfig)
     evaluator: EvaluatorConfig = Field(default_factory=EvaluatorConfig)
     belief: BeliefConfig = Field(default_factory=BeliefConfig)

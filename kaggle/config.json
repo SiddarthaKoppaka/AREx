@@ -8,11 +8,6 @@
     "model_sources": ["qwen-lm/qwen-3/transformers/8b/1"]
   },
   "runtime": {
-    "wheelhouse": "/kaggle/input/arex-kaggle-wheelhouse",
-    "model_path": "/kaggle/input/qwen-3/transformers/8b/1",
-    "max_actions": 40,
-    "max_model_calls": 4,
-    "max_new_tokens": 2048,
-    "max_repairs": 1
+    "wheelhouse": "/kaggle/input/arex-kaggle-wheelhouse"
   }
 }

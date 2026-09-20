@@ -17,6 +17,15 @@ arc = ["arc-agi==0.9.8"]
 analytics = ["pyarrow>=18"]
 kaggle-inference = [
     "accelerate==1.15.0",
+    "numpy>=1.26,<2.3",
+    "safetensors>=0.6",
+    "transformers==5.17.0",
+]
+colab = [
+    "accelerate==1.15.0",
+    "arc-agi==0.9.8",
+    "bitsandbytes>=0.47",
+    "numpy>=1.26,<2.3",
     "safetensors>=0.6",
     "transformers==5.17.0",
 ]

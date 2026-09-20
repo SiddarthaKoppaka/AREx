@@ -12,10 +12,12 @@ class EpisodeRunner:
         *,
         environment: EnvironmentAdapter,
         session: CognitiveSession,
+        raise_on_failure: bool = False,
     ) -> None:
         self.environment, self.session = environment, session
         self.io, self.events = session.io, session.io.events
         self.config, self.manifest = session.io.config, session.manifest
+        self.raise_on_failure = raise_on_failure
 
     def _episode(self, session: CognitiveSession) -> RunResult:
         observation = self.environment.reset()
@@ -30,4 +32,7 @@ class EpisodeRunner:
         try:
             return self._episode(self.session)
         except Exception as error:
-            return self.session.fail(error)
+            result = self.session.fail(error)
+            if self.raise_on_failure:
+                raise
+            return result

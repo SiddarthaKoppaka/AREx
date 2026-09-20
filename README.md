@@ -80,7 +80,7 @@ decides how to interpret the failure and what to try next.
   checksummed checkpoints, deterministic metrics, typed ablations, and rebuildable
   SQLite/FTS5 and tabular exports.
 - **Replaceable adapters:** deterministic fakes, local ARC and Kaggle callback
-  boundaries, structured model output, local Ollama, and offline Transformers.
+  boundaries, structured model output, offline Transformers, and optional Ollama.
 
 Raw events and the run manifest are authoritative. Indexes, summaries, and
 analysis tables are derived artifacts that can be rebuilt from the trace.
@@ -94,16 +94,15 @@ contracts and replaceable model/environment protocols. It includes:
 - one callback-driven cognitive session shared by local and Kaggle outer loops;
 - deterministic fake adapters for golden replay and regression testing;
 - official offline ARC environment execution;
-- local schema-constrained Qwen inference through Ollama;
 - attached-weight Qwen inference through a lazy, offline Transformers backend;
+- optional local Ollama experiments;
 - cognitive workspace, search, simulation, recovery, branching, and replay;
 - CLI workflows for runs, trace verification, indexing, and export; and
-- a centralized-config notebook that imitates the Kaggle entrypoint.
+- one set of named runtime profiles shared by local, Colab, and Kaggle runs.
 
-The local Qwen/`ls20` run was a one-turn integration smoke, not a solved-game or
-benchmark claim. A leaderboard submission still requires packaging AREx, a
-Qwen3.5-compatible Transformers stack, and attached weights into the official
-Kaggle starter notebook.
+The maintained Colab path uses Transformers with local model weights. A smoke
+generation checks the loaded model before the episode; it is not a benchmark
+result. The Kaggle submission remains an independent offline profile.
 
 ## Run locally
 
@@ -126,27 +125,87 @@ For official local ARC environments:
 uv sync --extra arc
 ```
 
-For the local Qwen workflow, start Ollama and open
-[`notebooks/arc_agi_3_local_qwen_kaggle_parity.ipynb`](notebooks/arc_agi_3_local_qwen_kaggle_parity.ipynb):
+The older Ollama notebook remains available for local experiments:
+[`notebooks/arc_agi_3_local_qwen_kaggle_parity.ipynb`](notebooks/arc_agi_3_local_qwen_kaggle_parity.ipynb).
+The maintained local Transformers path is
+[`notebooks/arc_agi_3_local_transformers.ipynb`](notebooks/arc_agi_3_local_transformers.ipynb).
 
-```bash
-ollama pull qwen3.5:9b
-ollama serve
+## Runtime profiles
+
+[`configs/runtime.toml`](configs/runtime.toml) defines `colab_transformers`,
+`kaggle_submission`, and `local_smoke`. Resolve one profile with
+`arc_agi_3.settings.resolve_runtime(profile, overrides=...)`. Values apply in
+this order: typed defaults, named profile, `AREX_` environment variables, then
+explicit overrides. The resolved object composes the Transformers backend,
+budgets, run configuration, structured adapter, and runner. For example:
+
+```python
+from arc_agi_3.settings import resolve_runtime
+
+settings = resolve_runtime(
+    "colab_transformers",
+    overrides={
+        "model_path": "/content/drive/MyDrive/AREx/models/YOUR_MODEL_DIRECTORY",
+        "model_name": "YOUR_MODEL_ID",
+    },
+)
+print(settings.model_dump(mode="json"))
 ```
 
-The notebook centralizes paths, game, seeds, budgets, model settings, context
-size, repair count, and turn limit. It loads the bundled environment in offline
-mode, runs the harness, verifies the trace and agency boundary, and produces
-derived research artifacts.
+The Colab profile requires an explicit `model_path` or `AREX_MODEL_PATH`; the
+repository does not infer an ID from the Drive directory. Its initial limits
+include eight turns and model calls, 40 actions, 32,768 input tokens per prompt,
+and one repair. A warning appears when model calls are fewer than turns. Kaggle
+selects `kaggle_submission` through `KaggleSettings` and keeps its own limits;
+`kaggle/config.json` supplies kernel and attached-source metadata.
+
+## Colab Transformers workflow
+
+Open [`notebooks/arc_agi_3_colab_transformers.ipynb`](notebooks/arc_agi_3_colab_transformers.ipynb).
+It mounts Drive, prepares Python 3.12 with `uv`, and invokes the repository's
+`arc_agi_3.research.colab_entry` command. Replace only the notebook's
+`OVERRIDES` values for `model_path` and `model_name`, then run its cells. The
+model is loaded once, used for a smoke generation, and reused for the episode.
+Run artifacts, checkpoints, and logs go to `/content/drive/MyDrive/AREx` by
+default, with a unique run ID.
+
+With `model_staging="copy_if_space"`, weights are copied from Drive to local
+Colab storage after a free-space check. Drive remains the persistent source;
+the local cache is ephemeral. Set `model_staging="none"` to load directly from
+Drive, or override `model_cache_dir` to choose a cache path. The Transformers
+backend enforces `max_input_tokens` without dropping required prompt content
+and passes `generation_timeout_seconds` to generation.
+
+## Budgets, context, and live trace
+
+A **model call** is one high-level decision request. A structured-output repair
+may make another backend generation within that same call; with
+`max_repairs=1`, one call can contain two generations. Token and model-time
+usage includes every completed generation, including attempts that fail
+validation. Invalid decisions still fail strict schema checks and enter the
+explicit repair path. Exhausted budgets finish normally with a resource-specific
+reason: `model_call_budget_exhausted`, `action_budget_exhausted`,
+`input_token_budget_exhausted`, `output_token_budget_exhausted`, or
+`wall_time_budget_exhausted`.
+
+The current observation keeps its complete frame. Model-facing recent events
+are bounded and compacted to avoid repeating historical frames and decision
+payloads; recovery evidence is compacted too. `events.jsonl` keeps the exact
+canonical events for replay. `recent_event_limit` and `compact_context` control
+the projection.
+
+`live_trace_mode` supports `silent`, `readable`, and `json`. Readable mode shows
+public decisions, actions, usage, budgets, and outcomes; JSON mode streams full
+canonical events. Configured logs persist the displayed stream. Normal traces
+store failed-output hashes and validation errors, not raw model output. Set
+`persist_invalid_model_output=true` only for debugging to include a bounded
+512-character preview in run artifacts. No private chain-of-thought is shown.
 
 ## Validation
 
-- 63 passing tests with 89% measured coverage
-- Strict mypy, Ruff linting, and formatting
-- Source, wheel, and offline `pip --no-index` installation smokes
-- Deterministic golden trace replay
-- Official offline `ls20` plus local `qwen3.5:9b` integration smoke
-- Complete notebook execution with zero agency-boundary violations
+Run `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`,
+and `uv run mypy` for repository checks. Unit tests use fake backends and do not
+download weights or require a GPU.
 
 Competition datasets, model assets, run artifacts, builds, and internal research
 or planning documents are intentionally excluded from version control.

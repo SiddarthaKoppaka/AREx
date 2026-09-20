@@ -1,25 +1,15 @@
 """Offline attached-weight inference through Hugging Face Transformers."""
 
-from importlib import import_module
 from time import perf_counter
 from typing import Any
 
-from pydantic import Field
-
-from arc_agi_3.contracts.base import Contract
 from arc_agi_3.contracts.decision import ModelUsage
 from arc_agi_3.trace.canonical import canonical_json
 
 from .inference import BackendGeneration
-
-
-class TransformersConfig(Contract):
-    model_path: str
-    model_name: str = "Qwen/Qwen3-8B"
-    model_digest: str = "unresolved"
-    max_new_tokens: int = Field(default=2048, gt=0)
-    dtype: str = "auto"
-    device_map: str = "auto"
+from .transformers_config import TransformersConfig as TransformersConfig
+from .transformers_limits import InputTokenLimitError, StageReporter
+from .transformers_loader import load_transformers
 
 
 class TransformersBackend:
@@ -29,34 +19,27 @@ class TransformersBackend:
         *,
         model: Any | None = None,
         tokenizer: Any | None = None,
+        reporter: StageReporter | None = None,
     ) -> None:
         if (model is None) != (tokenizer is None):
             raise ValueError("model and tokenizer must be supplied together")
         self.config = config
+        self.reporter = reporter
         if model is None:
+            started = perf_counter()
+            if reporter:
+                reporter.stage("model_load_start", model=config.model_name)
             self.model, self.tokenizer = self._load()
+            if reporter:
+                reporter.stage(
+                    "model_load_finish", seconds=round(perf_counter() - started, 3)
+                )
         else:
             assert tokenizer is not None
             self.model, self.tokenizer = model, tokenizer
 
     def _load(self) -> tuple[Any, Any]:
-        try:
-            transformers = import_module("transformers")
-        except ImportError as error:
-            raise RuntimeError(
-                "install a Qwen3-compatible Transformers build for Kaggle inference"
-            ) from error
-        common = {"local_files_only": True, "trust_remote_code": False}
-        tokenizer = transformers.AutoTokenizer.from_pretrained(
-            self.config.model_path, **common
-        )
-        model = transformers.AutoModelForCausalLM.from_pretrained(
-            self.config.model_path,
-            dtype=self.config.dtype,
-            device_map=self.config.device_map,
-            **common,
-        )
-        return model.eval(), tokenizer
+        return load_transformers(self.config)
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -65,8 +48,15 @@ class TransformersBackend:
             "model": self.config.model_name,
             "model_digest": self.config.model_digest,
             "max_new_tokens": self.config.max_new_tokens,
+            "max_input_tokens": self.config.max_input_tokens,
+            "max_time_seconds": self.config.max_time_seconds,
             "dtype": self.config.dtype,
             "device_map": self.config.device_map,
+            "attention_implementation": self.config.attention_implementation,
+            "local_files_only": self.config.local_files_only,
+            "trust_remote_code": self.config.trust_remote_code,
+            "revision": self.config.revision,
+            "quantization": self.config.quantization,
         }
 
     def generate(self, prompt: str, json_schema: dict[str, Any]) -> BackendGeneration:
@@ -82,12 +72,25 @@ class TransformersBackend:
         if hasattr(inputs, "to"):
             inputs = inputs.to(self.model.device)
         input_tokens = int(inputs["input_ids"].shape[-1])
+        if input_tokens > self.config.max_input_tokens:
+            raise InputTokenLimitError(
+                input_tokens, self.config.max_input_tokens, self.config.model_name
+            )
         started = perf_counter()
-        output = self.model.generate(
-            **inputs,
-            max_new_tokens=self.config.max_new_tokens,
-            do_sample=False,
-        )[0][input_tokens:]
+        if self.reporter:
+            self.reporter.stage("generation_start", input_tokens=input_tokens)
+        try:
+            output = self.model.generate(
+                **inputs,
+                max_new_tokens=self.config.max_new_tokens,
+                max_time=self.config.max_time_seconds,
+                do_sample=False,
+            )[0][input_tokens:]
+        finally:
+            if self.reporter:
+                self.reporter.stage(
+                    "generation_finish", seconds=round(perf_counter() - started, 3)
+                )
         latency_ms = round((perf_counter() - started) * 1000)
         return BackendGeneration(
             text=self.tokenizer.decode(output, skip_special_tokens=True),

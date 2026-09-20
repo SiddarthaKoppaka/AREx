@@ -69,6 +69,12 @@ class BudgetLedger:
         reservation = self.reserve({resource: amount})
         self.commit(reservation.reservation_id)
 
+    def record_actual(self, resource: Resource, amount: int) -> None:
+        """Record measured work even when a generation crossed its limit."""
+        if amount < 0:
+            raise ValueError("actual usage must be non-negative")
+        self.consumed[resource] = self.consumed.get(resource, 0) + amount
+
     def snapshot(self) -> BudgetSnapshot:
         resources = set(self.limits) | set(self.consumed)
         reserved = {resource: self._reserved(resource) for resource in resources}

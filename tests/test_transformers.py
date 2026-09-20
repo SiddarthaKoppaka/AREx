@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from arc_agi_3.adapters.transformers import TransformersBackend, TransformersConfig
+from arc_agi_3.adapters.transformers_limits import InputTokenLimitError
 
 
 class TokenIds(list[int]):
@@ -51,10 +52,28 @@ def test_backend_generates_direct_structured_output() -> None:
     assert tokenizer.template["enable_thinking"] is False
     assert model.arguments["do_sample"] is False
     assert model.arguments["max_new_tokens"] == 7
+    assert model.arguments["max_time"] == 180
     assert generated.text == '{"mode":"stop"}'
     assert generated.usage.input_tokens == 3
     assert generated.usage.output_tokens == 2
     assert backend.metadata["provider"] == "transformers"
+
+
+def test_input_token_guard_rejects_complete_prompt_without_generating() -> None:
+    model, tokenizer = Model(), Tokenizer()
+    config = TransformersConfig(
+        model_path="/weights", model_name="example", max_input_tokens=2
+    )
+    backend = TransformersBackend(config, model=model, tokenizer=tokenizer)
+    with pytest.raises(InputTokenLimitError) as caught:
+        backend.generate("choose", {"type": "object"})
+    assert (caught.value.actual, caught.value.limit, caught.value.model) == (
+        3,
+        2,
+        "example",
+    )
+    assert "JSON_SCHEMA" in tokenizer.template["messages"][0]["content"]
+    assert model.arguments == {}
 
 
 def test_backend_loads_text_only_qwen_classes(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -66,7 +85,7 @@ def test_backend_loads_text_only_qwen_classes(monkeypatch: pytest.MonkeyPatch) -
         AutoModelForCausalLM=model_factory,
     )
     monkeypatch.setattr(
-        "arc_agi_3.adapters.transformers.import_module", lambda name: module
+        "arc_agi_3.adapters.transformers_loader.import_module", lambda name: module
     )
     backend = TransformersBackend(TransformersConfig(model_path="/weights"))
     assert backend.model is model

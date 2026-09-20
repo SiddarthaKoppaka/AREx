@@ -1,0 +1,50 @@
+"""Resolve typed runtime settings with explicit, documented precedence."""
+
+import os
+import tomllib
+import warnings
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+from .settings_models import RuntimeSettings
+
+REPOSITORY_CONFIG = Path(__file__).resolve().parents[2] / "configs/runtime.toml"
+PACKAGE_CONFIG = Path(__file__).resolve().parent / "configs/runtime.toml"
+DEFAULT_CONFIG = REPOSITORY_CONFIG if REPOSITORY_CONFIG.is_file() else PACKAGE_CONFIG
+
+
+def resolve_runtime(
+    profile: str,
+    overrides: Mapping[str, object] | None = None,
+    environ: Mapping[str, str] | None = None,
+    config_path: Path | None = None,
+) -> RuntimeSettings:
+    """Apply typed defaults, profile, AREX environment, then explicit overrides."""
+    location = config_path or DEFAULT_CONFIG
+    profiles: dict[str, Any] = {}
+    if location.is_file():
+        with location.open("rb") as stream:
+            profiles = tomllib.load(stream).get("profiles", {})
+    if profile not in profiles and location.is_file():
+        raise ValueError(f"unknown runtime profile: {profile}")
+    values: dict[str, object] = {"profile": profile, **profiles.get(profile, {})}
+    source = os.environ if environ is None else environ
+    if (
+        profile == "colab_transformers"
+        and "AREX_MODEL_PATH" not in source
+        and "model_path" not in (overrides or {})
+    ):
+        raise ValueError("colab_transformers requires an explicit model_path override")
+    for name in RuntimeSettings.model_fields:
+        key = f"AREX_{name.upper()}"
+        if key in source:
+            values[name] = source[key]
+    values.update(overrides or {})
+    settings = RuntimeSettings.model_validate(values)
+    if settings.max_model_calls < settings.max_turns:
+        warnings.warn(
+            "max_model_calls < max_turns; one decision per turn may stop early",
+            stacklevel=2,
+        )
+    return settings

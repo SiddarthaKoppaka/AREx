@@ -1,7 +1,7 @@
 """Callback-driven cognition independent of environment-loop ownership."""
 
 from arc_agi_3.adapters.protocols import ModelAdapter
-from arc_agi_3.contracts.enums import EnvironmentState
+from arc_agi_3.contracts.enums import EnvironmentState, Resource
 from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.contracts.observation import Action, Observation
 from arc_agi_3.manifest import RunManifest
@@ -14,6 +14,7 @@ from .session_decide import decide_until_action
 from .session_lifecycle import finish_run, initialize_run, record_failure
 from .session_types import ActiveChunk
 from .state import RunResult
+from .usage import exhausted_reason
 
 
 class CognitiveSession:
@@ -51,8 +52,9 @@ class CognitiveSession:
             raise RuntimeError("previous action result has not been observed")
         if self.result is not None:
             return None
-        observation = self._current()
-        assert self.observed is not None
+        if self.observation is None or self.observed is None:
+            raise RuntimeError("session has not started")
+        observation = self.observation
         if observation.state is EnvironmentState.WIN:
             self.turn += 1
             self.finish("terminal")
@@ -79,13 +81,11 @@ class CognitiveSession:
         self.pending = next_chunk_action(self.io, self.turn, observation, self.chunk)
         if self.pending is None:
             self.chunk = None
+            if reason := exhausted_reason(self.io, Resource.ACTIONS):
+                self.finish(reason)
+                return None
             return self.next_action()
         return self.pending.action
-
-    def _current(self) -> Observation:
-        if self.observation is None or self.observed is None:
-            raise RuntimeError("session has not started")
-        return self.observation
 
     def fail(self, error: Exception) -> RunResult:
         record_failure(self.io, self.turn, error)

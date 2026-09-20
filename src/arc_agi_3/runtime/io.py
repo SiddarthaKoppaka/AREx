@@ -53,18 +53,19 @@ class EpisodeIO:
         causes: tuple[str, ...] = (),
     ) -> EventEnvelope:
         self.ledger.spend(resource, amount)
-        return self.append(
-            EventType.BUDGET,
-            "budget",
-            step,
-            {"resource": resource, "amount": amount},
-            causes,
-        )
+        payload: dict[str, JsonValue] = {"resource": resource, "amount": amount}
+        return self.append(EventType.BUDGET, "budget", step, payload, causes)
 
     def context(self, turn: int, observation: Observation) -> AgentContext:
-        items = self.ledger, self.events, self.workspace, self.config.ablations
         return project_context(
-            turn, observation, items[0], items[1], items[2], items[3]
+            turn,
+            observation,
+            self.ledger,
+            self.events,
+            self.workspace,
+            self.config.ablations,
+            self.config.recent_event_limit,
+            self.config.context_compaction,
         )
 
     def checkpoint(
@@ -88,13 +89,8 @@ class EpisodeIO:
             self.workspace.snapshot(),
             checkpoint_id,
         )
-        self.append(
-            EventType.CHECKPOINT,
-            "checkpoint",
-            step,
-            {
-                "checkpoint_id": checkpoint.checkpoint_id,
-                "checksum": checkpoint.checksum,
-            },
-            (cause,),
-        )
+        payload: dict[str, JsonValue] = {
+            "checkpoint_id": checkpoint.checkpoint_id,
+            "checksum": checkpoint.checksum,
+        }
+        self.append(EventType.CHECKPOINT, "checkpoint", step, payload, (cause,))

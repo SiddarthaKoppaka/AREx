@@ -1,7 +1,7 @@
 """Independent deterministic metrics computed only from immutable events."""
 
 from arc_agi_3.config import EvaluatorConfig
-from arc_agi_3.contracts.enums import EnvironmentState, EventType
+from arc_agi_3.contracts.enums import EnvironmentState, EventType, Resource
 from arc_agi_3.contracts.evaluation import EvaluationMetrics
 from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.evaluation_counts import event_research_counts
@@ -24,6 +24,18 @@ def evaluate(events: list[EventEnvelope], config: EvaluatorConfig) -> Evaluation
         for event in decisions
         if isinstance((value := event.payload.get("usage", {})), dict)
     ]
+    usage.extend(
+        value
+        for event in events
+        if event.event_type is EventType.FAILURE
+        and isinstance((details := event.payload.get("details")), dict)
+        and isinstance((value := details.get("usage")), dict)
+    )
+    charged_calls = sum(
+        event.event_type is EventType.BUDGET
+        and event.payload.get("resource") == Resource.MODEL_CALLS
+        for event in events
+    )
     verification_failures = sum(
         event.event_type is EventType.VERIFICATION
         and not bool(event.payload.get("passed", False))
@@ -48,7 +60,7 @@ def evaluate(events: list[EventEnvelope], config: EvaluatorConfig) -> Evaluation
             value if isinstance((value := final.get("levels_completed", 0)), int) else 0
         ),
         environment_actions=actions,
-        model_calls=len(decisions),
+        model_calls=charged_calls or len(decisions),
         input_tokens=sum(
             value if isinstance((value := item.get("input_tokens", 0)), int) else 0
             for item in usage

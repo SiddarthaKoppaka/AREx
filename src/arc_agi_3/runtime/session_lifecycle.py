@@ -8,6 +8,7 @@ from arc_agi_3.contracts.observation import Observation
 from arc_agi_3.evaluation import evaluate
 from arc_agi_3.manifest import RunManifest
 
+from .debug_output import persist_debug_previews
 from .io import EpisodeIO
 from .state import RunResult
 
@@ -37,7 +38,7 @@ def record_failure(io: EpisodeIO, turn: int, error: Exception) -> None:
     }
     details = getattr(error, "trace_payload", None)
     if isinstance(details, dict):
-        payload["details"] = details
+        payload["details"] = persist_debug_previews(details, io.events.path.parent)
     io.append(EventType.FAILURE, "runtime", turn, payload)
 
 

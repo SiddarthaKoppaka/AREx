@@ -81,6 +81,7 @@ class ModelAttempt(Contract):
     output_hash: str
     valid: bool
     validation_error: str | None = None
+    output_preview: str | None = None
 
 
 class ModelResponse(Contract):

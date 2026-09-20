@@ -11,73 +11,44 @@ from arc_agi_3.contracts.decision import (
     ModelResponse,
     ModelUsage,
 )
-from arc_agi_3.trace.canonical import canonical_hash, canonical_json
+from arc_agi_3.trace.canonical import canonical_hash
 
 from .inference import InferenceBackend
 from .prompts import decision_prompt
-
-
-def parse_json_object(text: str) -> dict[str, object]:
-    """Extract the first valid JSON object from raw or wrapped model output."""
-    stripped = text.strip()
-    decoder = json.JSONDecoder()
-
-    for position, character in enumerate(stripped):
-        if character != "{":
-            continue
-
-        try:
-            value, _ = decoder.raw_decode(stripped[position:])
-        except json.JSONDecodeError:
-            continue
-
-        if isinstance(value, dict):
-            return value
-
-    raise json.JSONDecodeError(
-        "No valid JSON object found in model output",
-        stripped,
-        0,
-    )
-
-
-class StructuredOutputError(RuntimeError):
-    def __init__(self, attempts: tuple[ModelAttempt, ...]) -> None:
-        super().__init__("model did not produce a valid CognitiveDecision")
-        self.trace_payload: dict[str, JsonValue] = {
-            "attempts": [item.model_dump(mode="json") for item in attempts]
-        }
+from .structured_output import (
+    StructuredOutputError,
+    parse_json_object,
+    validation_error_text,
+)
 
 
 class StructuredModelAdapter:
-    def __init__(self, backend: InferenceBackend, max_repairs: int = 1) -> None:
+    def __init__(
+        self,
+        backend: InferenceBackend,
+        max_repairs: int = 1,
+        persist_invalid_output: bool = False,
+    ) -> None:
         if max_repairs < 0:
             raise ValueError("max_repairs must be non-negative")
         self.backend, self.max_repairs = backend, max_repairs
+        self.persist_invalid_output = persist_invalid_output
 
     @property
     def metadata(self) -> dict[str, JsonValue]:
         return {
             "adapter": "structured-model",
             "max_repairs": self.max_repairs,
+            "persist_invalid_output": self.persist_invalid_output,
             "backend": self.backend.metadata,
         }
-
-    @staticmethod
-    def _error(error: Exception) -> str:
-        if isinstance(error, ValidationError):
-            return canonical_json(
-                error.errors(
-                    include_context=False, include_input=False, include_url=False
-                )
-            )
-        return f"{type(error).__name__}: {error}"
 
     def decide(self, context: AgentContext) -> ModelResponse:
         attempts: list[ModelAttempt] = []
         input_tokens = output_tokens = latency_ms = 0
         prior: str | None = None
         validation_error: str | None = None
+        usage = ModelUsage()
         schema = CognitiveDecision.model_json_schema()
         for number in range(1, self.max_repairs + 2):
             prompt = decision_prompt(
@@ -87,18 +58,26 @@ class StructuredModelAdapter:
             input_tokens += generated.usage.input_tokens
             output_tokens += generated.usage.output_tokens
             latency_ms += generated.usage.latency_ms
+            usage = ModelUsage(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                latency_ms=latency_ms,
+            )
             try:
                 decision = CognitiveDecision.model_validate(
                     parse_json_object(generated.text)
                 )
             except (json.JSONDecodeError, ValidationError) as error:
-                validation_error = self._error(error)
+                validation_error = validation_error_text(error)
                 attempts.append(
                     ModelAttempt(
                         attempt=number,
                         output_hash=canonical_hash(generated.text),
                         valid=False,
                         validation_error=validation_error,
+                        output_preview=generated.text[:512]
+                        if self.persist_invalid_output
+                        else None,
                     )
                 )
                 prior = generated.text
@@ -110,12 +89,7 @@ class StructuredModelAdapter:
                     valid=True,
                 )
             )
-            usage = ModelUsage(
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                latency_ms=latency_ms,
-            )
             return ModelResponse(
                 decision=decision, usage=usage, attempts=tuple(attempts)
             )
-        raise StructuredOutputError(tuple(attempts))
+        raise StructuredOutputError(tuple(attempts), usage)

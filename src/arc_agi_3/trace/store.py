@@ -1,7 +1,7 @@
 """Crash-visible append-only JSONL event source of truth."""
 
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -27,6 +27,7 @@ class JsonlEventStore:
         branch_id: str,
         clock: Callable[[], datetime] | None = None,
         id_factory: Callable[[], str] | None = None,
+        observers: Iterable[Callable[[EventEnvelope], None]] = (),
     ) -> None:
         self.path = path
         self.run_id = run_id
@@ -34,6 +35,7 @@ class JsonlEventStore:
         self.branch_id = branch_id
         self.clock = clock or (lambda: datetime.now(UTC))
         self.id_factory = id_factory or (lambda: str(uuid4()))
+        self.observers = tuple(observers)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         existing = self.read() if self.path.exists() else []
         self.sequence = len(existing)
@@ -73,6 +75,8 @@ class JsonlEventStore:
             os.fsync(stream.fileno())
         self.sequence += 1
         self.last_hash = event.event_hash
+        for observer in self.observers:
+            observer(event)
         return event
 
     def read(self) -> list[EventEnvelope]:

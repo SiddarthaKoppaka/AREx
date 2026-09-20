@@ -1,0 +1,46 @@
+[profiles.colab_transformers]
+model_provider = "transformers"
+model_name = "unresolved"
+local_files_only = true
+max_turns = 8
+max_actions = 40
+max_model_calls = 8
+max_input_tokens = 32768
+max_new_tokens = 1536
+max_repairs = 1
+input_token_budget = 400000
+output_token_budget = 20000
+generation_timeout_seconds = 180
+output_dir = "/content/drive/MyDrive/AREx/runs"
+log_dir = "/content/drive/MyDrive/AREx/logs"
+model_staging = "copy_if_space"
+require_gpu = true
+
+[profiles.kaggle_submission]
+model_path = "/kaggle/input/qwen-3/transformers/8b/1"
+model_name = "Qwen/Qwen3-8B"
+max_turns = 40
+max_actions = 40
+max_model_calls = 40
+max_input_tokens = 32768
+max_new_tokens = 2048
+max_repairs = 1
+input_token_budget = 400000
+output_token_budget = 20000
+generation_timeout_seconds = 180
+output_dir = "/kaggle/working/arex-runs"
+log_dir = "/kaggle/working/arex-logs"
+live_trace_mode = "silent"
+require_gpu = true
+
+[profiles.local_smoke]
+model_path = "Qwen/Qwen3-8B"
+max_turns = 2
+max_actions = 4
+max_model_calls = 2
+max_input_tokens = 8192
+max_new_tokens = 512
+input_token_budget = 20000
+output_token_budget = 2000
+generation_timeout_seconds = 60
+live_trace_mode = "readable"

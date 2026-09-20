@@ -97,3 +97,23 @@ def test_exhausted_repairs_expose_hashed_attempt_metadata() -> None:
     attempts = caught.value.trace_payload["attempts"]
     assert isinstance(attempts, list)
     assert "{}" not in str(attempts)
+    assert caught.value.usage == ModelUsage(
+        input_tokens=2, output_tokens=3, latency_ms=4
+    )
+    assert caught.value.trace_payload["generation_attempts"] == 1
+
+
+def test_exhausted_repairs_count_every_generation_with_bounded_debug_preview() -> None:
+    output = "not json " * 100
+    backend = Backend([output, output])
+    with pytest.raises(StructuredOutputError) as caught:
+        StructuredModelAdapter(
+            backend, max_repairs=1, persist_invalid_output=True
+        ).decide(context())
+    assert caught.value.usage == ModelUsage(
+        input_tokens=4, output_tokens=6, latency_ms=8
+    )
+    assert caught.value.trace_payload["generation_attempts"] == 2
+    attempts = caught.value.trace_payload["attempts"]
+    assert isinstance(attempts, list)
+    assert len(attempts[0]["output_preview"]) == 512

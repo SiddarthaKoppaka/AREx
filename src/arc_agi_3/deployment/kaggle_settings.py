@@ -1,36 +1,31 @@
-"""Centralized settings passed from the generated Kaggle notebook."""
+"""Kaggle-specific entry point to the shared runtime profile."""
 
 import os
-from pathlib import Path
 
-from pydantic import Field
+from pydantic import model_validator
 
-from arc_agi_3.contracts.base import Contract
+from arc_agi_3.settings import resolve_runtime
+from arc_agi_3.settings_models import RuntimeSettings
 
 
-class KaggleSettings(Contract):
-    model_path: Path
-    output_dir: Path = Path("/kaggle/working/arex-runs")
-    model_name: str = "Qwen/Qwen3-8B"
-    model_digest: str = "unresolved"
-    max_actions: int = Field(default=40, gt=0)
-    max_model_calls: int = Field(default=4, gt=0)
-    max_input_tokens: int = Field(default=200_000, gt=0)
-    max_output_tokens: int = Field(default=8_000, gt=0)
-    max_new_tokens: int = Field(default=2_048, gt=0)
-    max_repairs: int = Field(default=1, ge=0)
+class KaggleSettings(RuntimeSettings):
+    profile: str = "kaggle_submission"
     require_gpu: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def mirror_legacy_action_turns(cls, value: object) -> object:
+        if (
+            isinstance(value, dict)
+            and "max_actions" in value
+            and "max_turns" not in value
+        ):
+            return {**value, "max_turns": value["max_actions"]}
+        return value
 
     @classmethod
     def from_env(cls) -> "KaggleSettings":
-        model_path = os.environ.get("AREX_MODEL_PATH")
-        if not model_path:
+        if not os.getenv("AREX_MODEL_PATH"):
             raise RuntimeError("AREX_MODEL_PATH is required")
-        return cls(
-            model_path=Path(model_path),
-            output_dir=Path(os.getenv("AREX_OUTPUT_DIR", "/kaggle/working/arex-runs")),
-            max_actions=int(os.getenv("AREX_MAX_ACTIONS", "40")),
-            max_model_calls=int(os.getenv("AREX_MAX_MODEL_CALLS", "4")),
-            max_new_tokens=int(os.getenv("AREX_MAX_NEW_TOKENS", "2048")),
-            max_repairs=int(os.getenv("AREX_MAX_REPAIRS", "1")),
-        )
+        profile = os.getenv("AREX_PROFILE", "kaggle_submission")
+        return cls.model_validate(resolve_runtime(profile).model_dump())

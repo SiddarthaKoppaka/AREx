@@ -11,6 +11,7 @@ from arc_agi_3.trace.checkpoints import CheckpointStore
 from arc_agi_3.trace.store import JsonlEventStore
 
 from .io import EpisodeIO
+from .reporting import LiveReporter
 from .runner import EpisodeRunner
 from .session import CognitiveSession
 
@@ -23,6 +24,7 @@ def build_session(
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
     manifest: RunManifest | None = None,
+    reporter: LiveReporter | None = None,
 ) -> CognitiveSession:
     run_dir = config.output_dir / config.run_id
     event_path = run_dir / "events.jsonl"
@@ -39,6 +41,7 @@ def build_session(
         config.branch_id,
         clock=clock,
         id_factory=id_factory,
+        observers=(reporter.on_event,) if reporter else (),
     )
     io = EpisodeIO(
         config,
@@ -58,6 +61,8 @@ def build_runner(
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
     manifest: RunManifest | None = None,
+    reporter: LiveReporter | None = None,
+    raise_on_failure: bool = False,
 ) -> EpisodeRunner:
     session = build_session(
         config,
@@ -66,5 +71,8 @@ def build_runner(
         clock=clock,
         id_factory=id_factory,
         manifest=manifest,
+        reporter=reporter,
     )
-    return EpisodeRunner(environment=environment, session=session)
+    return EpisodeRunner(
+        environment=environment, session=session, raise_on_failure=raise_on_failure
+    )

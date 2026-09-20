@@ -6,8 +6,8 @@ from typing import Annotated
 import typer
 
 from arc_agi_3.cli_research import app as research_app
-from arc_agi_3.config import RunConfig
 from arc_agi_3.runtime.factory import build_runner
+from arc_agi_3.settings import resolve_runtime
 from arc_agi_3.testing import FakeLineEnvironment, ScriptedModel, successful_script
 from arc_agi_3.trace.canonical import canonical_json
 from arc_agi_3.trace.store import JsonlEventStore
@@ -25,12 +25,9 @@ def fake_run(
     trace = output / run_id / "events.jsonl"
     if trace.exists():
         raise typer.BadParameter(f"trace already exists: {trace}")
-    config = RunConfig(
-        run_id=run_id,
-        experiment_id="foundation-smoke",
-        output_dir=output,
-        game_id="fake-line",
-    )
+    config = resolve_runtime(
+        "local_smoke", overrides={"output_dir": output}
+    ).to_run_config(run_id, "fake-line", experiment_id="foundation-smoke")
     runner = build_runner(
         config, FakeLineEnvironment(), ScriptedModel(successful_script())
     )
