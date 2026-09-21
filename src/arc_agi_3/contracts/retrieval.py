@@ -34,6 +34,7 @@ class ContextEvent(Contract):
     event_id: str
     event_hash: str
     sequence: int = Field(ge=0)
+    step_id: int = Field(default=0, ge=0)
     event_type: EventType
     component: str
     causal_refs: tuple[str, ...]

@@ -17,6 +17,13 @@ def test_context_settings_are_hashed_in_run_provenance(run_config: RunConfig) ->
     assert changed.config_hash != run_config.config_hash
     changed = run_config.model_copy(update={"context_compaction": False})
     assert changed.config_hash != run_config.config_hash
+    for field, value in (
+        ("scratchpad_token_budget", 1000),
+        ("raw_recent_turns", 1),
+        ("episodic_retrieval_limit", 2),
+    ):
+        changed = run_config.model_copy(update={field: value})
+        assert changed.config_hash != run_config.config_hash
 
 
 def test_golden_trace_and_replay(

@@ -43,25 +43,26 @@ class TransformersBackend:
 
     @property
     def metadata(self) -> dict[str, Any]:
-        return {
-            "provider": "transformers",
-            "model": self.config.model_name,
-            "model_digest": self.config.model_digest,
-            "max_new_tokens": self.config.max_new_tokens,
-            "max_input_tokens": self.config.max_input_tokens,
-            "max_time_seconds": self.config.max_time_seconds,
-            "dtype": self.config.dtype,
-            "device_map": self.config.device_map,
-            "attention_implementation": self.config.attention_implementation,
-            "local_files_only": self.config.local_files_only,
-            "trust_remote_code": self.config.trust_remote_code,
-            "revision": self.config.revision,
-            "quantization": self.config.quantization,
-        }
+        return self.config.metadata()
 
     def generate(self, prompt: str, json_schema: dict[str, Any]) -> BackendGeneration:
+        inputs = self._tokenize(prompt, json_schema)
+        input_tokens = int(inputs["input_ids"].shape[-1])
+        if input_tokens > self.config.max_input_tokens:
+            raise InputTokenLimitError(
+                input_tokens, self.config.max_input_tokens, self.config.model_name
+            )
+        if hasattr(inputs, "to"):
+            inputs = inputs.to(self.model.device)
+        return self._generate(inputs, input_tokens)
+
+    def input_token_count(self, prompt: str, json_schema: dict[str, Any]) -> int:
+        inputs = self._tokenize(prompt, json_schema)
+        return int(inputs["input_ids"].shape[-1])
+
+    def _tokenize(self, prompt: str, json_schema: dict[str, Any]) -> Any:
         grounded = prompt + "\nJSON_SCHEMA:\n" + canonical_json(json_schema)
-        inputs = self.tokenizer.apply_chat_template(
+        return self.tokenizer.apply_chat_template(
             [{"role": "user", "content": grounded}],
             tokenize=True,
             add_generation_prompt=True,
@@ -69,13 +70,8 @@ class TransformersBackend:
             return_tensors="pt",
             enable_thinking=False,
         )
-        if hasattr(inputs, "to"):
-            inputs = inputs.to(self.model.device)
-        input_tokens = int(inputs["input_ids"].shape[-1])
-        if input_tokens > self.config.max_input_tokens:
-            raise InputTokenLimitError(
-                input_tokens, self.config.max_input_tokens, self.config.model_name
-            )
+
+    def _generate(self, inputs: Any, input_tokens: int) -> BackendGeneration:
         started = perf_counter()
         if self.reporter:
             self.reporter.stage("generation_start", input_tokens=input_tokens)

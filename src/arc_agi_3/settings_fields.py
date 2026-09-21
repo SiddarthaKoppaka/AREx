@@ -21,7 +21,10 @@ class RuntimeFields(Contract):
     local_files_only: bool = True
     trust_remote_code: bool = False
     quantization: Literal["none", "nf4"] = "none"
-    max_input_tokens: int = Field(default=32768, gt=0)
+    max_input_tokens: int = Field(default=30720, gt=0)
+    max_context_tokens: int = Field(default=32768, gt=0)
+    soft_input_limit: int = Field(default=24576, gt=0)
+    hard_input_limit: int = Field(default=30720, gt=0)
     max_new_tokens: int = Field(default=1536, gt=0)
     generation_timeout_seconds: float = Field(default=180, gt=0)
     max_repairs: int = Field(default=1, ge=0)
@@ -33,6 +36,9 @@ class RuntimeFields(Contract):
     wall_time_budget_seconds: float | None = Field(default=None, gt=0)
     checkpoint_interval: int = Field(default=1, gt=0)
     recent_event_limit: int = Field(default=12, gt=0)
+    scratchpad_token_budget: int = Field(default=2048, gt=0)
+    raw_recent_turns: int = Field(default=2, ge=0)
+    episodic_retrieval_limit: int = Field(default=6, ge=0)
     compact_context: bool = True
     output_dir: Path = Path("runs")
     log_dir: Path = Path("runs/logs")

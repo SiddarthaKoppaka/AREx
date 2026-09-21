@@ -75,6 +75,9 @@ class RunConfig(Contract):
     output_dir: Path = Field(default=Path("runs"), exclude=True)
     checkpoint_every: int = Field(default=1, gt=0)
     recent_event_limit: int = Field(default=8, gt=0)
+    scratchpad_token_budget: int = Field(default=2048, gt=0)
+    raw_recent_turns: int = Field(default=2, ge=0)
+    episodic_retrieval_limit: int = Field(default=6, ge=0)
     context_compaction: bool = True
     budget: BudgetConfig = Field(default_factory=BudgetConfig)
     evaluator: EvaluatorConfig = Field(default_factory=EvaluatorConfig)

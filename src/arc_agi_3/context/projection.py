@@ -6,6 +6,8 @@ from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.contracts.retrieval import ContextEvent
 
+from .retrieved_projection import retrieved_evidence
+
 
 def _bounded(value: JsonValue, depth: int = 0) -> JsonValue:
     if depth >= 5:
@@ -42,16 +44,30 @@ def _payload(event: EventEnvelope) -> dict[str, JsonValue]:
         if isinstance(decision, dict):
             return {
                 key: _bounded(decision[key])
-                for key in ("mode", "assessment", "intent", "evidence_refs")
+                for key in (
+                    "mode",
+                    "assessment",
+                    "intent",
+                    "considered_options",
+                    "decision_summary",
+                    "observation_summary",
+                    "expected_result",
+                    "evidence_refs",
+                )
                 if key in decision
             }
         return {}
     if event.event_type is EventType.RUN_STARTED:
         return {}
+    if event.event_type is EventType.TOOL_RESULT:
+        retrieved = retrieved_evidence(source)
+        if retrieved is not None:
+            return {"result": retrieved}
     if event.event_type in {
         EventType.HYPOTHESIS,
         EventType.TASK_UPDATE,
         EventType.WORLD_MODEL,
+        EventType.SCRATCHPAD_UPDATE,
     }:
         return {}
     return {
@@ -67,6 +83,7 @@ def compact_context_event(event: EventEnvelope) -> ContextEvent:
         event_id=event.event_id,
         event_hash=event.event_hash,
         sequence=event.sequence,
+        step_id=event.step_id,
         event_type=event.event_type,
         component=event.component,
         causal_refs=event.causal_refs,

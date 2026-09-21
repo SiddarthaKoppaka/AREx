@@ -43,6 +43,7 @@ def audit_agency_boundary(events: list[EventEnvelope]) -> tuple[str, ...]:
         EventType.BELIEF_UPDATE,
         EventType.TASK_UPDATE,
         EventType.WORLD_MODEL,
+        EventType.SCRATCHPAD_UPDATE,
         EventType.TOOL_REQUEST,
         EventType.CHUNK_STARTED,
         EventType.CHUNK_FINISHED,

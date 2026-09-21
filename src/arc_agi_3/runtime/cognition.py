@@ -15,6 +15,16 @@ def apply_cognitive_decision(
     decision: CognitiveDecision,
     step: int,
 ) -> None:
+    prepared_scratchpad = None
+    if decision.scratchpad_updates is not None:
+        known = {
+            event.event_id
+            for event in io.events.read()
+            if event.event_id != decision_event.event_id
+        }
+        prepared_scratchpad = io.workspace.scratchpad.prepare(
+            decision.scratchpad_updates, known
+        )
     if decision.hypothesis_proposals or decision.hypothesis_updates:
         require_capability(io.config.ablations.hypotheses, "hypotheses")
     if decision.task_updates:
@@ -58,6 +68,15 @@ def apply_cognitive_decision(
             "world_model",
             step,
             {"versions": [item.model_dump(mode="json") for item in models]},
+            (decision_event.event_id,),
+        )
+    if prepared_scratchpad is not None:
+        io.workspace.scratchpad.commit(prepared_scratchpad)
+        io.append(
+            EventType.SCRATCHPAD_UPDATE,
+            "working_memory",
+            step,
+            {"scratchpad": prepared_scratchpad.model_dump(mode="json")},
             (decision_event.event_id,),
         )
     for tool_request in decision.tool_requests:
