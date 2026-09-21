@@ -194,6 +194,23 @@ payloads; recovery evidence is compacted too. `events.jsonl` keeps the exact
 canonical events for replay. `recent_event_limit` and `compact_context` control
 the projection.
 
+Memory has three model-facing layers. `working_scratchpad` is a compact,
+versioned record injected on each call; verified facts require existing event
+references, and harness-owned capabilities cannot be overwritten by the model.
+Older turns become bounded `episodic_memory` summaries selected against the
+current objective. Concise public decision summaries remain in the canonical
+trace for observability but are not replayed as full reasoning history. Raw
+events remain authoritative and exact retrieval remains available.
+
+Before Transformers generation, AREx tokenizes the complete prompt and schema.
+Above `soft_input_limit`, it keeps the latest complete turns and drops
+lower-priority episodic memories. Above `hard_input_limit`, generation is
+refused without truncating the current observation, schema, or instructions.
+The Colab profile uses a 16,384-token context, 12,000-token soft limit,
+14,500-token hard limit, and 1,024 generation tokens. The scratchpad budget is
+enforced with a deterministic token estimate. `scratchpad_token_budget`,
+`raw_recent_turns`, and `episodic_retrieval_limit` bound the memory layers.
+
 `live_trace_mode` supports `silent`, `readable`, and `json`. Readable mode shows
 public decisions, actions, usage, budgets, and outcomes; JSON mode streams full
 canonical events. Configured logs persist the displayed stream. Normal traces

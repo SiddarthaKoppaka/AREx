@@ -62,6 +62,7 @@ def test_recent_window_and_nested_tool_output_are_bounded(tmp_path: Path) -> Non
         CognitiveWorkspace(BeliefConfig()),
         AblationConfig(),
         3,
+        raw_recent_turns=3,
     )
     second = project_context(
         1,
@@ -71,10 +72,14 @@ def test_recent_window_and_nested_tool_output_are_bounded(tmp_path: Path) -> Non
         CognitiveWorkspace(BeliefConfig()),
         AblationConfig(),
         3,
+        raw_recent_turns=3,
     )
     assert first == second
     assert len(first.recent_events) == 3
-    assert all("frame" not in str(item.payload) for item in first.recent_events)
+    assert all("'frame':" not in str(item.payload) for item in first.recent_events)
+    assert all(
+        "frame_size_characters" in str(item.payload) for item in first.recent_events
+    )
     assert all(
         item.payload["result"]["status"] == "complete" for item in first.recent_events
     )

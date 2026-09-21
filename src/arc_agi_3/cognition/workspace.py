@@ -8,15 +8,22 @@ from arc_agi_3.exploration import ExplorationHistory
 from arc_agi_3.world_model import WorldModel, WorldModelStore
 
 from .beliefs import BeliefStore
+from .scratchpad import ScratchpadStore
 from .tasks import TaskGraph
 
 
 class CognitiveWorkspace:
-    def __init__(self, belief_config: BeliefConfig) -> None:
+    def __init__(
+        self,
+        belief_config: BeliefConfig,
+        capabilities: dict[str, bool] | None = None,
+        scratchpad_token_budget: int = 2048,
+    ) -> None:
         self.beliefs = BeliefStore(belief_config)
         self.tasks = TaskGraph()
         self.world_models = WorldModelStore()
         self.exploration = ExplorationHistory()
+        self.scratchpad = ScratchpadStore(capabilities, scratchpad_token_budget)
 
     def snapshot(self) -> dict[str, JsonValue]:
         return {
@@ -24,6 +31,7 @@ class CognitiveWorkspace:
             "tasks": self.tasks.snapshot(),
             "world_models": self.world_models.snapshot(),
             "exploration": self.exploration.snapshot(),
+            "working_scratchpad": self.scratchpad.snapshot(),
         }
 
     def restore(self, value: dict[str, JsonValue]) -> None:
@@ -40,3 +48,4 @@ class CognitiveWorkspace:
         self.tasks.restore(tasks)
         self.world_models.restore(models)
         self.exploration.restore(value.get("exploration", {}))
+        self.scratchpad.restore(value.get("working_scratchpad"))

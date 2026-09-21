@@ -16,9 +16,13 @@ class ArcEnvironmentAdapter:
     def metadata(self) -> dict[str, JsonValue]:
         info = getattr(self.wrapper, "info", None)
         if info is None:
-            return {"adapter": "arc", "environment": "unknown"}
+            return {
+                "adapter": "arc",
+                "environment": "unknown",
+                "restore_supported": False,
+            }
         values = info.model_dump(mode="json", exclude_none=True)
-        return {"adapter": "arc", "info": values}
+        return {"adapter": "arc", "info": values, "restore_supported": False}
 
     def _convert(self, raw: Any) -> Observation:
         if raw is None:

@@ -13,6 +13,7 @@ from arc_agi_3.contracts.decision import (
 )
 from arc_agi_3.trace.canonical import canonical_hash
 
+from .context_compaction import compact_for_backend
 from .inference import InferenceBackend
 from .prompts import decision_prompt
 from .structured_output import (
@@ -51,8 +52,15 @@ class StructuredModelAdapter:
         usage = ModelUsage()
         schema = CognitiveDecision.model_json_schema()
         for number in range(1, self.max_repairs + 2):
+            projected = compact_for_backend(
+                context,
+                self.backend,
+                schema,
+                prior_output=prior,
+                validation_error=validation_error,
+            )
             prompt = decision_prompt(
-                context, prior_output=prior, validation_error=validation_error
+                projected, prior_output=prior, validation_error=validation_error
             )
             generated = self.backend.generate(prompt, schema)
             input_tokens += generated.usage.input_tokens

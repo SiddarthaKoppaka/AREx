@@ -41,6 +41,7 @@ class EventType(StrEnum):
     BELIEF_UPDATE = "belief_update"
     TASK_UPDATE = "task_update"
     WORLD_MODEL = "world_model"
+    SCRATCHPAD_UPDATE = "scratchpad_update"
     CHUNK_STARTED = "chunk_started"
     CHUNK_FINISHED = "chunk_finished"
     INTERRUPT = "interrupt"

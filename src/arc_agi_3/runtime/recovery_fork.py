@@ -26,7 +26,9 @@ def fork_checkpoint(
     checkpoint = io.checkpoints.load(checkpoint_id)
     if checkpoint.environment_state is None:
         return failed(io, turn, current, observed, requested, "restore_unsupported")
-    workspace = CognitiveWorkspace(io.config.belief)
+    workspace = CognitiveWorkspace(
+        io.config.belief, scratchpad_token_budget=io.config.scratchpad_token_budget
+    )
     workspace.restore(checkpoint.cognitive_state)
     restored = io.environment.restore(checkpoint.environment_state)
     expected_hash = checkpoint.observation.get("observation_hash")

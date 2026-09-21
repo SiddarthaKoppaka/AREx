@@ -13,8 +13,10 @@ def test_experiment_zero_defaults() -> None:
         "colab_transformers", overrides={"model_path": "/weights"}, environ={}
     )
     assert settings.max_turns == settings.max_model_calls == 8
-    assert settings.max_new_tokens == 1536
-    assert settings.max_input_tokens == 32768
+    assert settings.max_new_tokens == 1024
+    assert settings.max_context_tokens == 16384
+    assert settings.soft_input_limit == 12000
+    assert settings.hard_input_limit == settings.max_input_tokens == 14500
 
 
 def test_remote_nf4_loading_is_explicit(monkeypatch) -> None:  # type: ignore[no-untyped-def]

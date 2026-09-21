@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from pydantic import model_validator
 
 from .settings_fields import RuntimeFields
+from .settings_validation import validate_runtime
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -22,9 +23,7 @@ if TYPE_CHECKING:
 class RuntimeSettings(RuntimeFields):
     @model_validator(mode="after")
     def validate_budgets(self) -> "RuntimeSettings":
-        if self.max_new_tokens > self.output_token_budget:
-            raise ValueError("max_new_tokens exceeds output_token_budget")
-        return self
+        return validate_runtime(self)
 
     @classmethod
     def load(

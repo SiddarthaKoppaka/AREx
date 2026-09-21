@@ -10,6 +10,7 @@ def context_event(event: EventEnvelope) -> ContextEvent:
         event_id=event.event_id,
         event_hash=event.event_hash,
         sequence=event.sequence,
+        step_id=event.step_id,
         event_type=event.event_type,
         component=event.component,
         causal_refs=event.causal_refs,

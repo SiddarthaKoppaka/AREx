@@ -29,7 +29,11 @@ class EpisodeIO:
     ) -> None:
         self.config, self.environment = config, environment
         self.events, self.checkpoints, self.ledger = events, checkpoints, ledger
-        self.workspace = CognitiveWorkspace(config.belief)
+        restore_supported = environment.metadata.get("restore_supported", False)
+        capabilities = {"checkpoint_restore_supported": bool(restore_supported)}
+        self.workspace = CognitiveWorkspace(
+            config.belief, capabilities, config.scratchpad_token_budget
+        )
         self.branches = BranchTracker(config.branch_id)
 
     def append(
@@ -66,6 +70,8 @@ class EpisodeIO:
             self.config.ablations,
             self.config.recent_event_limit,
             self.config.context_compaction,
+            self.config.raw_recent_turns,
+            self.config.episodic_retrieval_limit,
         )
 
     def checkpoint(
@@ -89,8 +95,6 @@ class EpisodeIO:
             self.workspace.snapshot(),
             checkpoint_id,
         )
-        payload: dict[str, JsonValue] = {
-            "checkpoint_id": checkpoint.checkpoint_id,
-            "checksum": checkpoint.checksum,
-        }
+        payload: dict[str, JsonValue] = {"checkpoint_id": checkpoint.checkpoint_id}
+        payload["checksum"] = checkpoint.checksum
         self.append(EventType.CHECKPOINT, "checkpoint", step, payload, (cause,))

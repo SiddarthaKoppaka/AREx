@@ -40,7 +40,36 @@ def resolve_runtime(
         key = f"AREX_{name.upper()}"
         if key in source:
             values[name] = source[key]
+    if (
+        "AREX_HARD_INPUT_LIMIT" in source
+        and "AREX_MAX_INPUT_TOKENS" in source
+        and source["AREX_HARD_INPUT_LIMIT"] != source["AREX_MAX_INPUT_TOKENS"]
+    ):
+        raise ValueError("conflicting hard and legacy input limits")
+    if "AREX_HARD_INPUT_LIMIT" in source and "AREX_MAX_INPUT_TOKENS" not in source:
+        values["max_input_tokens"] = source["AREX_HARD_INPUT_LIMIT"]
+    elif "AREX_MAX_INPUT_TOKENS" in source and "AREX_HARD_INPUT_LIMIT" not in source:
+        values["hard_input_limit"] = source["AREX_MAX_INPUT_TOKENS"]
     values.update(overrides or {})
+    if (
+        overrides
+        and "hard_input_limit" in overrides
+        and "max_input_tokens" in overrides
+        and overrides["hard_input_limit"] != overrides["max_input_tokens"]
+    ):
+        raise ValueError("conflicting hard and legacy input limits")
+    if (
+        overrides
+        and "hard_input_limit" in overrides
+        and "max_input_tokens" not in overrides
+    ):
+        values["max_input_tokens"] = overrides["hard_input_limit"]
+    elif (
+        overrides
+        and "max_input_tokens" in overrides
+        and "hard_input_limit" not in overrides
+    ):
+        values["hard_input_limit"] = overrides["max_input_tokens"]
     settings = RuntimeSettings.model_validate(values)
     if settings.max_model_calls < settings.max_turns:
         warnings.warn(

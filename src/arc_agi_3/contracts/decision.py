@@ -1,24 +1,21 @@
 """Structured public decision interface for the LM agent."""
 
-from pydantic import Field, model_validator
+from typing import Annotated
+
+from pydantic import Field, StringConstraints, model_validator
 
 from arc_agi_3.world_model.contracts import WorldModel
 
+from . import cognition
 from .base import Contract
-from .cognition import (
-    BeliefUpdate,
-    Hypothesis,
-    PlanRecord,
-    TaskRecord,
-    TaskView,
-    ToolRequest,
-)
 from .enums import DecisionMode, Resource
 from .execution import ActionChunk
 from .execution import ExpectedOutcome as ExpectedOutcome
+from .memory import EpisodeMemory
 from .observation import Action, Observation
 from .recovery import RecoveryEvidence, RecoveryRequest
 from .retrieval import ContextEvent
+from .scratchpad import ScratchpadUpdates, WorkingScratchpad
 
 
 class BudgetRequest(Contract):
@@ -26,17 +23,25 @@ class BudgetRequest(Contract):
     amount: int = Field(gt=0)
 
 
+PublicSummary = Annotated[str, StringConstraints(max_length=512)]
+
+
 class CognitiveDecision(Contract):
     assessment: str
     intent: str
+    considered_options: tuple[PublicSummary, ...] = Field(default=(), max_length=5)
+    decision_summary: PublicSummary | None = None
+    observation_summary: PublicSummary | None = None
+    expected_result: PublicSummary | None = None
     mode: DecisionMode
+    scratchpad_updates: ScratchpadUpdates | None = None
     evidence_refs: tuple[str, ...] = ()
-    hypothesis_proposals: tuple[Hypothesis, ...] = ()
-    hypothesis_updates: tuple[BeliefUpdate, ...] = ()
-    task_updates: tuple[TaskRecord, ...] = ()
+    hypothesis_proposals: tuple[cognition.Hypothesis, ...] = ()
+    hypothesis_updates: tuple[cognition.BeliefUpdate, ...] = ()
+    task_updates: tuple[cognition.TaskRecord, ...] = ()
     world_model_updates: tuple[WorldModel, ...] = ()
-    plan: PlanRecord | None = None
-    tool_requests: tuple[ToolRequest, ...] = ()
+    plan: cognition.PlanRecord | None = None
+    tool_requests: tuple[cognition.ToolRequest, ...] = ()
     action: Action | None = None
     action_chunk: ActionChunk | None = None
     expected_outcome: ExpectedOutcome | None = None
@@ -64,8 +69,10 @@ class AgentContext(Contract):
     budget: dict[Resource, int]
     recent_event_refs: tuple[str, ...] = ()
     recent_events: tuple[ContextEvent, ...] = ()
-    hypotheses: tuple[Hypothesis, ...] = ()
-    tasks: tuple[TaskView, ...] = ()
+    working_scratchpad: WorkingScratchpad | None = None
+    episodic_memory: EpisodeMemory | None = None
+    hypotheses: tuple[cognition.Hypothesis, ...] = ()
+    tasks: tuple[cognition.TaskView, ...] = ()
     world_models: tuple[WorldModel, ...] = ()
     recovery_evidence: RecoveryEvidence | None = None
 

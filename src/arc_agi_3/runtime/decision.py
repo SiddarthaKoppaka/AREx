@@ -12,6 +12,14 @@ from arc_agi_3.contracts.observation import Observation
 from .io import EpisodeIO
 from .usage import record_model_usage
 
+PUBLIC_RATIONALE_FIELDS = (
+    "considered_options",
+    "decision_summary",
+    "observation_summary",
+    "expected_result",
+)
+OPTIONAL_DECISION_FIELDS = (*PUBLIC_RATIONALE_FIELDS, "scratchpad_updates")
+
 
 @dataclass(frozen=True)
 class RecordedDecision:
@@ -33,12 +41,16 @@ def request_decision(
     except StructuredOutputError as error:
         record_model_usage(io, error.usage, turn, budget.event_id)
         raise
+    decision_payload = response.decision.model_dump(mode="json")
+    for field in OPTIONAL_DECISION_FIELDS:
+        if not decision_payload[field]:
+            decision_payload.pop(field)
     event = io.append(
         EventType.MODEL_DECISION,
         "model",
         turn,
         {
-            "decision": response.decision.model_dump(mode="json"),
+            "decision": decision_payload,
             "usage": response.usage.model_dump(mode="json"),
             "attempts": [
                 item.model_dump(mode="json", exclude_none=True)

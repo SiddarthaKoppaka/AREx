@@ -21,7 +21,12 @@ class FakeLineEnvironment:
 
     @property
     def metadata(self) -> dict[str, JsonValue]:
-        return {"adapter": "fake-line", "version": "1", "target": self.target}
+        return {
+            "adapter": "fake-line",
+            "version": "1",
+            "target": self.target,
+            "restore_supported": True,
+        }
 
     def _observation(self) -> Observation:
         row = [0] * (self.target + 1)

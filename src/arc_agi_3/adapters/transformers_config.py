@@ -12,7 +12,9 @@ class TransformersConfig(Contract):
     model_name: str = "Qwen/Qwen3-8B"
     model_digest: str = "unresolved"
     max_new_tokens: int = Field(default=2048, gt=0)
-    max_input_tokens: int = Field(default=32768, gt=0)
+    max_input_tokens: int = Field(default=30720, gt=0)
+    max_context_tokens: int = Field(default=32768, gt=0)
+    soft_input_limit: int = Field(default=24576, gt=0)
     max_time_seconds: float = Field(default=180, gt=0)
     dtype: str = "auto"
     device_map: str = "auto"
@@ -21,3 +23,24 @@ class TransformersConfig(Contract):
     trust_remote_code: bool = False
     revision: str = "main"
     quantization: QuantizationMode = "none"
+
+    def metadata(self) -> dict[str, object]:
+        keys = (
+            "model_name",
+            "model_digest",
+            "max_new_tokens",
+            "max_input_tokens",
+            "max_context_tokens",
+            "soft_input_limit",
+            "max_time_seconds",
+            "dtype",
+            "device_map",
+            "attention_implementation",
+            "local_files_only",
+            "trust_remote_code",
+            "revision",
+            "quantization",
+        )
+        return {"provider": "transformers", "model": self.model_name} | {
+            key: getattr(self, key) for key in keys if key != "model_name"
+        }

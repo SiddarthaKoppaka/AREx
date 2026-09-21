@@ -24,7 +24,9 @@ def transformers_config(
         trust_remote_code=settings.trust_remote_code,
         quantization=settings.quantization,
         max_new_tokens=settings.max_new_tokens,
-        max_input_tokens=settings.max_input_tokens,
+        max_input_tokens=settings.hard_input_limit,
+        max_context_tokens=settings.max_context_tokens,
+        soft_input_limit=settings.soft_input_limit,
         max_time_seconds=settings.generation_timeout_seconds,
     )
 
@@ -57,6 +59,9 @@ def run_config(
         output_dir=settings.output_dir,
         checkpoint_every=settings.checkpoint_interval,
         recent_event_limit=settings.recent_event_limit,
+        scratchpad_token_budget=settings.scratchpad_token_budget,
+        raw_recent_turns=settings.raw_recent_turns,
+        episodic_retrieval_limit=settings.episodic_retrieval_limit,
         context_compaction=settings.compact_context,
         budget=budget_config(settings),
     )

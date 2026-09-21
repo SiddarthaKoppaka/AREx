@@ -67,3 +67,21 @@ def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> N
     )
     assert exact.matches[0].payload["frame"] == old.model_dump(mode="json")["frame"]
     assert len(prompt) < 32_768
+
+
+def test_recent_projection_keeps_complete_latest_turn(tmp_path: Path) -> None:
+    events = store(tmp_path / "turns.jsonl")
+    for amount in range(5):
+        events.append(EventType.BUDGET, "budget", 4, {"amount": amount})
+    context = project_context(
+        4,
+        observation(1),
+        BudgetLedger({}),
+        events,
+        CognitiveWorkspace(BeliefConfig()),
+        AblationConfig(),
+        recent_event_limit=2,
+        raw_recent_turns=1,
+    )
+    assert len(context.recent_events) == 5
+    assert context.episodic_memory is None
