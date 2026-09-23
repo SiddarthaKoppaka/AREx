@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from .settings_limits import normalize_context_limits
 from .settings_models import RuntimeSettings
 
 REPOSITORY_CONFIG = Path(__file__).resolve().parents[2] / "configs/runtime.toml"
@@ -28,7 +29,12 @@ def resolve_runtime(
             profiles = tomllib.load(stream).get("profiles", {})
     if profile not in profiles and location.is_file():
         raise ValueError(f"unknown runtime profile: {profile}")
-    values: dict[str, object] = {"profile": profile, **profiles.get(profile, {})}
+    defaults = RuntimeSettings().model_dump()
+    values: dict[str, object] = {
+        **defaults,
+        "profile": profile,
+        **profiles.get(profile, {}),
+    }
     source = os.environ if environ is None else environ
     if (
         profile == "colab_transformers"
@@ -70,6 +76,7 @@ def resolve_runtime(
         and "hard_input_limit" not in overrides
     ):
         values["hard_input_limit"] = overrides["max_input_tokens"]
+    normalize_context_limits(values, source, overrides or {})
     settings = RuntimeSettings.model_validate(values)
     if settings.max_model_calls < settings.max_turns:
         warnings.warn(

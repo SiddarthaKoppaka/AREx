@@ -14,7 +14,10 @@ class TransformersConfig(Contract):
     max_new_tokens: int = Field(default=2048, gt=0)
     max_input_tokens: int = Field(default=30720, gt=0)
     max_context_tokens: int = Field(default=32768, gt=0)
-    soft_input_limit: int = Field(default=24576, gt=0)
+    soft_input_limit: int = Field(default=12000, gt=0)
+    compaction_pressure_start: int = Field(default=12000, gt=0)
+    active_context_target: int = Field(default=16000, gt=0)
+    template_and_generation_margin: int = Field(default=512, ge=0)
     max_time_seconds: float = Field(default=180, gt=0)
     dtype: str = "auto"
     device_map: str = "auto"
@@ -32,6 +35,9 @@ class TransformersConfig(Contract):
             "max_input_tokens",
             "max_context_tokens",
             "soft_input_limit",
+            "compaction_pressure_start",
+            "active_context_target",
+            "template_and_generation_margin",
             "max_time_seconds",
             "dtype",
             "device_map",

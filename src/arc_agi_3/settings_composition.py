@@ -27,6 +27,9 @@ def transformers_config(
         max_input_tokens=settings.hard_input_limit,
         max_context_tokens=settings.max_context_tokens,
         soft_input_limit=settings.soft_input_limit,
+        compaction_pressure_start=settings.compaction_pressure_start,
+        active_context_target=settings.active_context_target,
+        template_and_generation_margin=settings.template_and_generation_margin,
         max_time_seconds=settings.generation_timeout_seconds,
     )
 

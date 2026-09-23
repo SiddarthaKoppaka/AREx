@@ -25,6 +25,12 @@ class TaskGraph:
         self._history = {item.task_id: [item] for item in records}
 
     def apply_many(self, updates: tuple[TaskRecord, ...]) -> tuple[TaskRecord, ...]:
+        prepared = self.validate_many(updates)
+        for update in prepared:
+            self._history.setdefault(update.task_id, []).append(update)
+        return prepared
+
+    def validate_many(self, updates: tuple[TaskRecord, ...]) -> tuple[TaskRecord, ...]:
         if not updates:
             return ()
         ids = [item.task_id for item in updates]
@@ -37,9 +43,9 @@ class TaskGraph:
             if update.version != expected:
                 raise ValueError(f"task {update.task_id!r} requires version {expected}")
             staged[update.task_id] = update
+        if len(staged) > 32:
+            raise ValueError("task graph exceeds 32 tasks")
         self._validate(staged)
-        for update in updates:
-            self._history.setdefault(update.task_id, []).append(update)
         return tuple(sorted(updates, key=lambda item: item.task_id))
 
     @staticmethod

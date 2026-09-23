@@ -6,9 +6,9 @@ from typing import Any
 from arc_agi_3.contracts.decision import ModelUsage
 from arc_agi_3.trace.canonical import canonical_json
 
+from . import transformers_limits as limits
 from .inference import BackendGeneration
 from .transformers_config import TransformersConfig as TransformersConfig
-from .transformers_limits import InputTokenLimitError, StageReporter
 from .transformers_loader import load_transformers
 
 
@@ -19,7 +19,7 @@ class TransformersBackend:
         *,
         model: Any | None = None,
         tokenizer: Any | None = None,
-        reporter: StageReporter | None = None,
+        reporter: limits.StageReporter | None = None,
     ) -> None:
         if (model is None) != (tokenizer is None):
             raise ValueError("model and tokenizer must be supplied together")
@@ -29,7 +29,7 @@ class TransformersBackend:
             started = perf_counter()
             if reporter:
                 reporter.stage("model_load_start", model=config.model_name)
-            self.model, self.tokenizer = self._load()
+            self.model, self.tokenizer = load_transformers(self.config)
             if reporter:
                 reporter.stage(
                     "model_load_finish", seconds=round(perf_counter() - started, 3)
@@ -38,19 +38,20 @@ class TransformersBackend:
             assert tokenizer is not None
             self.model, self.tokenizer = model, tokenizer
 
-    def _load(self) -> tuple[Any, Any]:
-        return load_transformers(self.config)
-
     @property
     def metadata(self) -> dict[str, Any]:
         return self.config.metadata()
 
+    @property
+    def effective_max_input_tokens(self) -> int:
+        return limits.effective_input_limit(self.config, self.model)
+
     def generate(self, prompt: str, json_schema: dict[str, Any]) -> BackendGeneration:
         inputs = self._tokenize(prompt, json_schema)
         input_tokens = int(inputs["input_ids"].shape[-1])
-        if input_tokens > self.config.max_input_tokens:
-            raise InputTokenLimitError(
-                input_tokens, self.config.max_input_tokens, self.config.model_name
+        if input_tokens > self.effective_max_input_tokens:
+            raise limits.InputTokenLimitError(
+                input_tokens, self.effective_max_input_tokens, self.config.model_name
             )
         if hasattr(inputs, "to"):
             inputs = inputs.to(self.model.device)

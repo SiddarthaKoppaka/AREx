@@ -29,17 +29,25 @@ class BeliefUpdate(Contract):
     related_hypothesis_ids: tuple[str, ...] = ()
 
 
+class TaskHandoff(Contract):
+    summary: str = Field(min_length=1, max_length=1024)
+    artifact_refs: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = Field(min_length=1)
+    unresolved_questions: tuple[str, ...] = ()
+
+
 class TaskRecord(Contract):
     task_id: str
     version: int = Field(ge=1)
-    purpose: str
-    success_criteria: str
+    purpose: str = Field(min_length=1, max_length=240)
+    success_criteria: str = Field(min_length=1, max_length=240)
     dependencies: tuple[str, ...] = ()
     evidence_refs: tuple[str, ...] = ()
     hypothesis_refs: tuple[str, ...] = ()
     budget_limits: dict[Resource, int] = Field(default_factory=dict)
     priority: int = 0
     status: TaskStatus = TaskStatus.OPEN
+    handoff: TaskHandoff | None = None
 
     @model_validator(mode="after")
     def valid_budget(self) -> "TaskRecord":

@@ -6,6 +6,7 @@ from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import EventEnvelope
 
 from .io import EpisodeIO
+from .task_validation import validate_task_updates
 from .tools import run_tool
 
 
@@ -15,13 +16,15 @@ def apply_cognitive_decision(
     decision: CognitiveDecision,
     step: int,
 ) -> None:
+    known = {
+        event.event_id
+        for event in io.events.read()
+        if event.event_id != decision_event.event_id
+    }
+    validate_task_updates(io, decision.task_updates, known)
+    io.workspace.tasks.validate_many(decision.task_updates)
     prepared_scratchpad = None
     if decision.scratchpad_updates is not None:
-        known = {
-            event.event_id
-            for event in io.events.read()
-            if event.event_id != decision_event.event_id
-        }
         prepared_scratchpad = io.workspace.scratchpad.prepare(
             decision.scratchpad_updates, known
         )

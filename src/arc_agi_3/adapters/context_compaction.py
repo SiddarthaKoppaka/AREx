@@ -1,17 +1,11 @@
 """Token-aware pruning of optional context before structured generation."""
 
-from typing import Any, Protocol
+from typing import Any
 
 from arc_agi_3.contracts.decision import AgentContext
 
 from .prompts import decision_prompt
 from .transformers_limits import InputTokenLimitError
-
-
-class TokenAwareBackend(Protocol):
-    config: Any
-
-    def input_token_count(self, prompt: str, schema: dict[str, Any]) -> int: ...
 
 
 def compact_for_backend(
@@ -24,15 +18,26 @@ def compact_for_backend(
 ) -> AgentContext:
     counter = getattr(backend, "input_token_count", None)
     config = getattr(backend, "config", None)
-    configured_soft = getattr(config, "soft_input_limit", None)
+    pressure = getattr(config, "compaction_pressure_start", None)
+    if pressure is None:
+        pressure = getattr(config, "soft_input_limit", None)
+    target = getattr(config, "active_context_target", pressure)
     hard = getattr(config, "max_input_tokens", None)
+    effective = getattr(backend, "effective_max_input_tokens", None)
+    if isinstance(effective, int):
+        hard = min(hard, effective) if isinstance(hard, int) else effective
+    window = getattr(config, "max_context_tokens", None)
+    output = getattr(config, "max_new_tokens", None)
+    margin = getattr(config, "template_and_generation_margin", None)
+    if isinstance(window, int) and isinstance(output, int) and isinstance(margin, int):
+        hard = min(hard, window - output - margin) if isinstance(hard, int) else None
     if (
         not callable(counter)
-        or not isinstance(configured_soft, int)
+        or not isinstance(pressure, int)
+        or not isinstance(target, int)
         or not isinstance(hard, int)
     ):
         return context
-    soft = min(configured_soft, hard)
 
     def tokens(value: AgentContext) -> int:
         prompt = decision_prompt(
@@ -41,7 +46,7 @@ def compact_for_backend(
         return int(counter(prompt, schema))
 
     actual = tokens(context)
-    if actual <= soft and actual <= hard:
+    if actual <= pressure and actual <= hard:
         return context
     before = actual
 
@@ -52,8 +57,9 @@ def compact_for_backend(
                 "context_compaction",
                 before_tokens=before,
                 after_tokens=after,
-                soft_limit=soft,
-                hard_limit=hard,
+                compaction_pressure_start=pressure,
+                active_context_target=target,
+                emergency_ceiling=hard,
             )
 
     steps = sorted({event.step_id for event in context.recent_events})[-2:]
@@ -80,7 +86,7 @@ def compact_for_backend(
             )
             compacted = compacted.model_copy(update={"episodic_memory": candidate})
             actual = tokens(compacted)
-            if actual <= soft:
+            if actual <= target:
                 report(actual)
                 return compacted
     actual = tokens(compacted)

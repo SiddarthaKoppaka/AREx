@@ -30,10 +30,24 @@ class ScratchpadStore:
                 raise ValueError(
                     "verified scratchpad facts require known evidence refs"
                 )
+            if fact.fact_id in fact.supersedes:
+                raise ValueError("a scratchpad fact cannot supersede itself")
+            if len(set(fact.supersedes)) != len(fact.supersedes):
+                raise ValueError("superseded scratchpad facts must be unique")
+            superseded = [facts[key] for key in fact.supersedes if key in facts]
+            if len(superseded) != len(fact.supersedes):
+                raise ValueError("superseded scratchpad facts must exist")
+            inherited = {
+                reference for item in superseded for reference in item.evidence_refs
+            }
+            if not inherited <= set(fact.evidence_refs):
+                raise ValueError("consolidated facts must retain source evidence")
             prior = facts.get(fact.fact_id)
             expected = 1 if prior is None else prior.version + 1
             if fact.version != expected:
                 raise ValueError(f"scratchpad fact requires version {expected}")
+            for item in superseded:
+                del facts[item.fact_id]
             facts[fact.fact_id] = fact
         questions = [
             item

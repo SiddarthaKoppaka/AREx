@@ -11,6 +11,7 @@ class VerifiedFact(Contract):
     fact: str
     confidence: float = Field(ge=0.0, le=1.0)
     evidence_refs: tuple[str, ...] = Field(min_length=1)
+    supersedes: tuple[str, ...] = ()
 
 
 class NextTest(Contract):

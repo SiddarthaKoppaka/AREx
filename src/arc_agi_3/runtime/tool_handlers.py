@@ -11,12 +11,20 @@ from arc_agi_3.exploration.contracts import ExplorationOutcome
 from arc_agi_3.planning import SearchRequest, run_search
 from arc_agi_3.world_model import SimulationRequest, WorldModelRuntime
 
+from .artifact_tools import archive_artifact, retrieve_artifact
+from .evidence_tools import evidence_tool
 from .io import EpisodeIO
 
 
 def execute_tool(
     io: EpisodeIO, request: ToolRequest, requested: EventEnvelope, step: int
 ) -> ToolResult:
+    if request.tool_name == "archive_artifact":
+        return archive_artifact(io, request, requested)
+    if request.tool_name == "retrieve_artifact":
+        return retrieve_artifact(io, request)
+    if request.tool_name in {"retrieve_evidence", "inspect_frame_region"}:
+        return evidence_tool(io, request)
     if request.tool_name == "retrieve_events":
         require_capability(io.config.ablations.selective_retrieval, "retrieval")
         query = RetrievalQuery.model_validate(request.arguments)

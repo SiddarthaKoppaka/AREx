@@ -56,7 +56,9 @@ def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> N
         AblationConfig(),
     )
     prompt = decision_prompt(context)
-    assert prompt.count('"frame":') == 1
+    assert '"frame":' not in prompt
+    assert '"encoding":"row_rle_v1"' in prompt
+    assert "[[3,64]]" in prompt
     assert '"frame":[[[2' not in prompt
     assert context.recent_events[0].payload["observation_hash"] == old.observation_hash
     assert context.recent_events[1].payload["action"] == {"action_id": 1}

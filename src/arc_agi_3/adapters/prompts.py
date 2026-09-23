@@ -3,12 +3,16 @@
 from arc_agi_3.contracts.decision import AgentContext
 from arc_agi_3.trace.canonical import canonical_json
 
+from .observation_projection import observation_view
+from .task_projection import task_prompt_view
+
 
 def _ordered_context(context: AgentContext) -> str:
     sections = (
-        ("CURRENT_OBSERVATION", context.observation),
+        ("CURRENT_OBSERVATION", observation_view(context.observation)),
         ("VERIFIED_WORLD_MODELS", context.world_models),
         ("WORKING_SCRATCHPAD", context.working_scratchpad),
+        ("TASK_GRAPH", task_prompt_view(context.tasks)),
         ("RECENT_TURNS", context.recent_events),
         ("RELEVANT_EPISODES", context.episodic_memory),
         (
@@ -18,7 +22,6 @@ def _ordered_context(context: AgentContext) -> str:
                 "budget": context.budget,
                 "recent_event_refs": context.recent_event_refs,
                 "hypotheses": context.hypotheses,
-                "tasks": context.tasks,
                 "recovery_evidence": context.recovery_evidence,
             },
         ),
@@ -49,9 +52,16 @@ def decision_prompt(
         "memory only through scratchpad_updates. Verified facts must cite existing "
         "prior event IDs in evidence_refs; capabilities are harness-owned. Use "
         "hypothesis_proposals and hypothesis_updates to add or reject hypotheses.\n"
-        "To inspect older exact events, use tool_requests with tool_name "
-        'retrieve_events and arguments such as {"event_ids":["event-id"],'
-        '"limit":1}.\nCONTEXT:\n' + _ordered_context(context)
+        "You may author an LM-owned task DAG with task_updates: scene inspection, "
+        "action semantics, goal hypothesis, world model, plan, then execution. "
+        "Give each task explicit success criteria and a compact handoff when complete. "
+        "Treat mechanical frame views as evidence, not inferred object or goal labels. "
+        "Use retrieve_evidence with event_ids, purpose, token_budget, and view: "
+        "metadata, summary, transition_delta, rle_frame, region, or full. Use "
+        "inspect_frame_region for coordinates. Use archive_artifact with evidence "
+        "refs for compact handoffs and retrieve_artifact to reopen them. Exact "
+        "retrieve_events remains available when required.\nCONTEXT:\n"
+        + _ordered_context(context)
     )
     if validation_error is None:
         return base
