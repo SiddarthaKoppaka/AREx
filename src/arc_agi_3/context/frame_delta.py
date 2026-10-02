@@ -5,6 +5,7 @@ from pydantic import TypeAdapter
 from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.contracts.observation import Frame
+from arc_agi_3.evidence.cells import cell_changes
 
 _FRAME = TypeAdapter(Frame)
 
@@ -44,22 +45,9 @@ def transition_delta(
         raise ValueError("transition observations have no frames")
     left = _FRAME.validate_python(left_data)
     right = _FRAME.validate_python(right_data)
-    old = {
-        (z, y, x): value
-        for z, layer in enumerate(left)
-        for y, row in enumerate(layer)
-        for x, value in enumerate(row)
-    }
-    new = {
-        (z, y, x): value
-        for z, layer in enumerate(right)
-        for y, row in enumerate(layer)
-        for x, value in enumerate(row)
-    }
     changes = [
-        [*key, old.get(key), new.get(key)]
-        for key in sorted(old.keys() | new.keys())
-        if old.get(key) != new.get(key)
+        [item.layer, item.row, item.col, item.before, item.after]
+        for item in cell_changes(left, right)
     ]
     return {
         "before_event_id": before.event_id,

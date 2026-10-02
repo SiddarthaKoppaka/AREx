@@ -7,7 +7,6 @@ from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.contracts.memory import EpisodeMemory, EpisodeMemoryItem
 
 from .episode_summary import describe
-from .projection import compact_context_event
 
 _SALIENT = {
     EventType.OBSERVATION,
@@ -72,5 +71,4 @@ def _item(step: int, events: list[EventEnvelope]) -> EpisodeMemoryItem:
         failed_approaches=failures,
         evidence_refs=refs,
         source_event_refs=refs,
-        events=tuple(compact_context_event(event) for event in visible),
     )

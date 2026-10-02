@@ -10,13 +10,20 @@ from .observation import Action
 
 
 class Hypothesis(Contract):
+    """Model-owned claim; `probability` is the model's own confidence."""
+
     hypothesis_id: str
     version: int = Field(ge=1)
     claim: str
     probability: float = Field(ge=0.0, le=1.0)
     evidence_refs: tuple[str, ...] = ()
+    contradicting_refs: tuple[str, ...] = ()
+    prediction_ids: tuple[str, ...] = ()
     belief_group: str | None = None
-    status: Literal["active", "suspended", "rejected"] = "active"
+    status: Literal["active", "suspended", "rejected", "accepted"] = "active"
+    created_turn: int | None = Field(default=None, ge=0)
+    supersedes: tuple[str, ...] = ()
+    superseded_by: str | None = None
 
 
 class BeliefUpdate(Contract):
@@ -27,6 +34,8 @@ class BeliefUpdate(Contract):
     evidence_refs: tuple[str, ...]
     revised_claim: str | None = None
     related_hypothesis_ids: tuple[str, ...] = ()
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    prediction_ids: tuple[str, ...] = ()
 
 
 class TaskHandoff(Contract):

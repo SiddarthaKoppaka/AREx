@@ -1,32 +1,51 @@
-"""Minimal public-workspace prompt projection."""
+"""Bounded working-set prompt projection."""
+
+from typing import Any
 
 from arc_agi_3.contracts.decision import AgentContext
-from arc_agi_3.trace.canonical import canonical_json
 
+from .episode_projection import episode_prompt_view
 from .observation_projection import observation_view
+from .prompt_render import render
+from .prompt_text import CONTRACT, EPISTEMICS, REPAIR, TOOLS
 from .task_projection import task_prompt_view
 
 
-def _ordered_context(context: AgentContext) -> str:
-    sections = (
+def _sections(context: AgentContext) -> tuple[tuple[str, Any], ...]:
+    verification = context.latest_verification
+    return (
         ("CURRENT_OBSERVATION", observation_view(context.observation)),
-        ("VERIFIED_WORLD_MODELS", context.world_models),
+        (
+            "LATEST_TRANSITION",
+            {
+                "event_id": context.latest_transition_event_id,
+                "evidence": context.latest_transition,
+            },
+        ),
+        (
+            "LATEST_VERIFICATION",
+            verification.model_dump(mode="json", exclude={"delta"})
+            if verification
+            else None,
+        ),
+        ("HYPOTHESIS_LEDGER", context.hypothesis_ledger),
+        ("UNRESOLVED_CONTRADICTIONS", context.unresolved_contradictions),
+        ("ACTION_EVIDENCE", context.action_evidence),
         ("WORKING_SCRATCHPAD", context.working_scratchpad),
         ("TASK_GRAPH", task_prompt_view(context.tasks)),
+        ("MODEL_AUTHORED_WORLD_MODELS", context.world_models),
         ("RECENT_TURNS", context.recent_events),
-        ("RELEVANT_EPISODES", context.episodic_memory),
+        ("RELEVANT_EPISODES", episode_prompt_view(context.episodic_memory)),
         (
             "OTHER_CONTEXT",
             {
                 "turn": context.turn,
                 "budget": context.budget,
-                "recent_event_refs": context.recent_event_refs,
-                "hypotheses": context.hypotheses,
+                "context_stats": context.context_stats,
                 "recovery_evidence": context.recovery_evidence,
             },
         ),
     )
-    return "\n".join(f"{name}:\n{canonical_json(value)}" for name, value in sections)
 
 
 def decision_prompt(
@@ -35,41 +54,10 @@ def decision_prompt(
     prior_output: str | None = None,
     validation_error: str | None = None,
 ) -> str:
-    base = (
-        "You are the agent. Return exactly one CognitiveDecision as raw JSON "
-        "matching the provided schema. Do not use Markdown code fences, XML tags, "
-        "commentary, or text outside the JSON object. "
-        "Own all semantic interpretation, intent, strategy, and action choice. "
-        "Do not provide private chain-of-thought or hidden reasoning. Use assessment, "
-        "intent, "
-        "considered_options, decision_summary, observation_summary, and "
-        "expected_result only for concise public decision rationale and summaries. "
-        "Structural invariants: execute mode must "
-        "set exactly one of action or action_chunk; every other mode must set "
-        "both action and action_chunk to null. Recover mode must set recovery; "
-        "every other mode must set recovery to null. Keep decision-history fields "
-        "concise and public; never include private chain-of-thought. Update working "
-        "memory only through scratchpad_updates. Verified facts must cite existing "
-        "prior event IDs in evidence_refs; capabilities are harness-owned. Use "
-        "hypothesis_proposals and hypothesis_updates to add or reject hypotheses.\n"
-        "You may author an LM-owned task DAG with task_updates: scene inspection, "
-        "action semantics, goal hypothesis, world model, plan, then execution. "
-        "Give each task explicit success criteria and a compact handoff when complete. "
-        "Treat mechanical frame views as evidence, not inferred object or goal labels. "
-        "Use retrieve_evidence with event_ids, purpose, token_budget, and view: "
-        "metadata, summary, transition_delta, rle_frame, region, or full. Use "
-        "inspect_frame_region for coordinates. Use archive_artifact with evidence "
-        "refs for compact handoffs and retrieve_artifact to reopen them. Exact "
-        "retrieve_events remains available when required.\nCONTEXT:\n"
-        + _ordered_context(context)
-    )
+    body = "\n".join(f"{name}:\n{render(value)}" for name, value in _sections(context))
+    base = CONTRACT + EPISTEMICS + TOOLS + "CONTEXT:\n" + body
     if validation_error is None:
         return base
     return (
-        base
-        + "\nYour previous output was structurally invalid. Preserve your decision "
-        "semantics and return corrected JSON only.\nVALIDATION_ERROR:\n"
-        + validation_error
-        + "\nPREVIOUS_OUTPUT:\n"
-        + (prior_output or "")
+        base + REPAIR + validation_error + "\nPREVIOUS_OUTPUT:\n" + (prior_output or "")
     )

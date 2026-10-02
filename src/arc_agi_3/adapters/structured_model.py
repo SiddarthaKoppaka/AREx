@@ -13,7 +13,8 @@ from arc_agi_3.contracts.decision import (
 )
 from arc_agi_3.trace.canonical import canonical_hash
 
-from .context_compaction import compact_for_backend
+from .context_compaction import compact_with_report
+from .decision_schema import decision_schema
 from .inference import InferenceBackend
 from .prompts import decision_prompt
 from .structured_output import (
@@ -50,9 +51,9 @@ class StructuredModelAdapter:
         prior: str | None = None
         validation_error: str | None = None
         usage = ModelUsage()
-        schema = CognitiveDecision.model_json_schema()
+        schema = decision_schema()
         for number in range(1, self.max_repairs + 2):
-            projected = compact_for_backend(
+            projected, report = compact_with_report(
                 context,
                 self.backend,
                 schema,
@@ -71,33 +72,29 @@ class StructuredModelAdapter:
                 output_tokens=output_tokens,
                 latency_ms=latency_ms,
             )
+            digest = canonical_hash(generated.text)
             try:
                 decision = CognitiveDecision.model_validate(
                     parse_json_object(generated.text)
                 )
             except (json.JSONDecodeError, ValidationError) as error:
                 validation_error = validation_error_text(error)
+                preview = generated.text[:512] if self.persist_invalid_output else None
                 attempts.append(
                     ModelAttempt(
                         attempt=number,
-                        output_hash=canonical_hash(generated.text),
+                        output_hash=digest,
                         valid=False,
                         validation_error=validation_error,
-                        output_preview=generated.text[:512]
-                        if self.persist_invalid_output
-                        else None,
+                        output_preview=preview,
                     )
                 )
                 prior = generated.text
                 continue
             attempts.append(
-                ModelAttempt(
-                    attempt=number,
-                    output_hash=canonical_hash(generated.text),
-                    valid=True,
-                )
+                ModelAttempt(attempt=number, output_hash=digest, valid=True)
             )
             return ModelResponse(
-                decision=decision, usage=usage, attempts=tuple(attempts)
+                decision=decision, usage=usage, attempts=tuple(attempts), prompt=report
             )
         raise StructuredOutputError(tuple(attempts), usage)

@@ -3,15 +3,8 @@
 from pydantic import Field, model_validator
 
 from .base import Contract
-from .enums import EnvironmentState
 from .observation import Action
-
-
-class ExpectedOutcome(Contract):
-    observation_hash: str | None = None
-    state: EnvironmentState | None = None
-    min_levels_completed: int | None = Field(default=None, ge=0)
-    max_changed_cells: int | None = Field(default=None, ge=0)
+from .prediction import ExpectedOutcome as ExpectedOutcome
 
 
 class ChunkStep(Contract):

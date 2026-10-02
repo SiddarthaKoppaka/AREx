@@ -27,7 +27,9 @@ class BeliefStore:
             raise ValueError("restored hypothesis IDs must be unique")
         self._history = {item.hypothesis_id: [item] for item in records}
 
-    def add_many(self, proposals: tuple[Hypothesis, ...]) -> tuple[Hypothesis, ...]:
+    def add_many(
+        self, proposals: tuple[Hypothesis, ...], turn: int | None = None
+    ) -> tuple[Hypothesis, ...]:
         if not proposals:
             return ()
         ids = [item.hypothesis_id for item in proposals]
@@ -36,14 +38,25 @@ class BeliefStore:
         if any(item.version != 1 for item in proposals):
             raise ValueError("new hypotheses must start at version 1")
         before = {item.hypothesis_id: item for item in self.current}
-        staged = {**before, **{item.hypothesis_id: item for item in proposals}}
+        staged = {
+            **before,
+            **{item.hypothesis_id: _stamped(item, turn) for item in proposals},
+        }
+        touched = set(ids)
+        for item in proposals:
+            for old in item.supersedes:
+                if old not in before:
+                    raise ValueError("superseded hypotheses must already exist")
+                staged[old] = staged[old].model_copy(
+                    update={"superseded_by": item.hypothesis_id}
+                )
+                touched.add(old)
         groups = {
             group for item in proposals if (group := item.belief_group) is not None
         }
         for group in sorted(groups):
             normalize_group(staged, group)
-        changed = self._commit(staged, before, set(ids))
-        return changed
+        return self._commit(staged, before, touched)
 
     def apply(self, request: BeliefUpdate) -> tuple[Hypothesis, ...]:
         before = {item.hypothesis_id: item for item in self.current}
@@ -74,3 +87,9 @@ class BeliefStore:
 
     def snapshot(self) -> list[JsonValue]:
         return [item.model_dump(mode="json") for item in self.current]
+
+
+def _stamped(item: Hypothesis, turn: int | None) -> Hypothesis:
+    if turn is None or item.created_turn is not None:
+        return item
+    return item.model_copy(update={"created_turn": turn})

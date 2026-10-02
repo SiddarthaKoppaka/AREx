@@ -1,12 +1,13 @@
 """Equal-value connected components with no semantic labels."""
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 
 FrameLike = Sequence[Sequence[Sequence[int]]]
+Points = frozenset[tuple[int, int]]
 
 
-def components(frame: FrameLike) -> list[dict[str, int]]:
-    found: list[dict[str, int]] = []
+def component_points(frame: FrameLike) -> Iterator[tuple[int, int, Points]]:
+    """Yield (layer, value, cells) for every 4-connected equal-value region."""
     for z, layer in enumerate(frame):
         seen: set[tuple[int, int]] = set()
         for y, row in enumerate(layer):
@@ -32,17 +33,23 @@ def components(frame: FrameLike) -> list[dict[str, int]]:
                         ):
                             seen.add((ny, nx))
                             queue.append((ny, nx))
-                found.append(
-                    {
-                        "layer": z,
-                        "value": value,
-                        "size": len(points),
-                        "min_y": min(point[0] for point in points),
-                        "min_x": min(point[1] for point in points),
-                        "max_y": max(point[0] for point in points),
-                        "max_x": max(point[1] for point in points),
-                    }
-                )
+                yield z, value, frozenset(points)
+
+
+def bounds(layer: int, value: int, points: Points) -> dict[str, int]:
+    return {
+        "layer": layer,
+        "value": value,
+        "size": len(points),
+        "min_y": min(point[0] for point in points),
+        "min_x": min(point[1] for point in points),
+        "max_y": max(point[0] for point in points),
+        "max_x": max(point[1] for point in points),
+    }
+
+
+def components(frame: FrameLike) -> list[dict[str, int]]:
+    found = [bounds(*item) for item in component_points(frame)]
     return sorted(
         found,
         key=lambda item: (item["size"], item["layer"], item["min_y"], item["min_x"]),

@@ -26,5 +26,13 @@ class EvaluationMetrics(Contract):
     branch_forks: int = Field(default=0, ge=0)
     repeated_actions: int = Field(default=0, ge=0)
     world_model_versions: int = Field(default=0, ge=0)
+    predictions_matched: int = Field(default=0, ge=0)
+    predictions_unchecked: int = Field(default=0, ge=0)
+    actions_without_prediction: int = Field(default=0, ge=0)
+    experiments: int = Field(default=0, ge=0)
+    repeated_experiments: int = Field(default=0, ge=0)
+    unjustified_repeats: int = Field(default=0, ge=0)
+    hypothesis_revisions: int = Field(default=0, ge=0)
+    plan_deviations: int = Field(default=0, ge=0)
     rhae_level_scores: tuple[float, ...] = ()
     rhae_environment_score: float | None = None

@@ -1,5 +1,7 @@
 """Independent deterministic metrics computed only from immutable events."""
 
+from typing import Any
+
 from arc_agi_3.config import EvaluatorConfig
 from arc_agi_3.contracts.enums import EnvironmentState, EventType, Resource
 from arc_agi_3.contracts.evaluation import EvaluationMetrics
@@ -36,11 +38,6 @@ def evaluate(events: list[EventEnvelope], config: EvaluatorConfig) -> Evaluation
         and event.payload.get("resource") == Resource.MODEL_CALLS
         for event in events
     )
-    verification_failures = sum(
-        event.event_type is EventType.VERIFICATION
-        and not bool(event.payload.get("passed", False))
-        for event in events
-    )
     scores: tuple[float, ...] = ()
     result: float | None = None
     if config.human_action_baselines:
@@ -53,7 +50,7 @@ def evaluate(events: list[EventEnvelope], config: EvaluatorConfig) -> Evaluation
         ]
         scores = tuple(computed)
         result = environment_score(scores, len(counts))
-    research = event_research_counts(events)
+    research: dict[str, Any] = event_research_counts(events)
     return EvaluationMetrics(
         succeeded=final.get("state") == EnvironmentState.WIN,
         levels_completed=(
@@ -69,20 +66,10 @@ def evaluate(events: list[EventEnvelope], config: EvaluatorConfig) -> Evaluation
             value if isinstance((value := item.get("output_tokens", 0)), int) else 0
             for item in usage
         ),
-        verification_failures=verification_failures,
+        verification_failures=research["prediction_mismatches"],
         failures=sum(event.event_type is EventType.FAILURE for event in events),
         checkpoints=sum(event.event_type is EventType.CHECKPOINT for event in events),
-        search_node_expansions=research["search_node_expansions"],
-        simulations=research["simulations"],
-        wall_time_ms=research["wall_time_ms"],
-        prediction_mismatches=research["prediction_mismatches"],
-        soft_interrupts=research["soft_interrupts"],
-        hard_stops=research["hard_stops"],
-        recovery_attempts=research["recovery_attempts"],
-        recovery_failures=research["recovery_failures"],
-        branch_forks=research["branch_forks"],
-        repeated_actions=research["repeated_actions"],
-        world_model_versions=research["world_model_versions"],
+        **research,
         rhae_level_scores=scores,
         rhae_environment_score=result,
     )

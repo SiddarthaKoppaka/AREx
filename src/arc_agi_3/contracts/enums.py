@@ -52,6 +52,7 @@ class EventType(StrEnum):
     ACTION = "action"
     TRANSITION = "transition"
     VERIFICATION = "verification"
+    EXPERIMENT = "experiment"
     CHECKPOINT = "checkpoint"
     FAILURE = "failure"
     RUN_FINISHED = "run_finished"
@@ -67,6 +68,7 @@ class BeliefOperation(StrEnum):
     MERGE = "merge"
     SUSPEND = "suspend"
     REJECT = "reject"
+    ACCEPT = "accept"
 
 
 class TaskStatus(StrEnum):

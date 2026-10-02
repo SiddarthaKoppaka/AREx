@@ -1,66 +1,28 @@
-"""Structured public decision interface for the LM agent."""
+"""Decision interface and the bounded working set shown to the LM agent."""
 
-from typing import Annotated
-
-from pydantic import Field, StringConstraints, model_validator
+from pydantic import Field
 
 from arc_agi_3.world_model.contracts import WorldModel
 
 from . import cognition
 from .base import Contract
-from .enums import DecisionMode, Resource
-from .execution import ActionChunk
+from .decision_core import BudgetRequest as BudgetRequest
+from .decision_core import CognitiveDecision as CognitiveDecision
+from .decision_core import PublicSummary as PublicSummary
+from .enums import Resource
+from .epistemic import ActionEvidence, ContextStats, HypothesisLedgerEntry
 from .execution import ExpectedOutcome as ExpectedOutcome
 from .memory import EpisodeMemory
-from .observation import Action, Observation
-from .recovery import RecoveryEvidence, RecoveryRequest
+from .model_io import ModelAttempt as ModelAttempt
+from .model_io import ModelResponse as ModelResponse
+from .model_io import ModelUsage as ModelUsage
+from .model_io import PromptReport as PromptReport
+from .observation import Observation
+from .recovery import RecoveryEvidence
 from .retrieval import ContextEvent
-from .scratchpad import ScratchpadUpdates, WorkingScratchpad
-
-
-class BudgetRequest(Contract):
-    resource: Resource
-    amount: int = Field(gt=0)
-
-
-PublicSummary = Annotated[str, StringConstraints(max_length=512)]
-
-
-class CognitiveDecision(Contract):
-    assessment: str
-    intent: str
-    considered_options: tuple[PublicSummary, ...] = Field(default=(), max_length=5)
-    decision_summary: PublicSummary | None = None
-    observation_summary: PublicSummary | None = None
-    expected_result: PublicSummary | None = None
-    mode: DecisionMode
-    scratchpad_updates: ScratchpadUpdates | None = None
-    evidence_refs: tuple[str, ...] = ()
-    hypothesis_proposals: tuple[cognition.Hypothesis, ...] = ()
-    hypothesis_updates: tuple[cognition.BeliefUpdate, ...] = ()
-    task_updates: tuple[cognition.TaskRecord, ...] = ()
-    world_model_updates: tuple[WorldModel, ...] = ()
-    plan: cognition.PlanRecord | None = None
-    tool_requests: tuple[cognition.ToolRequest, ...] = ()
-    action: Action | None = None
-    action_chunk: ActionChunk | None = None
-    expected_outcome: ExpectedOutcome | None = None
-    budget_requests: tuple[BudgetRequest, ...] = ()
-    uncertainty: str | None = None
-    recovery: RecoveryRequest | None = None
-
-    @model_validator(mode="after")
-    def action_matches_mode(self) -> "CognitiveDecision":
-        authorizations = int(self.action is not None) + int(
-            self.action_chunk is not None
-        )
-        if self.mode is DecisionMode.EXECUTE and authorizations != 1:
-            raise ValueError("execute decisions require exactly one LM authorization")
-        if self.mode is not DecisionMode.EXECUTE and authorizations:
-            raise ValueError("only execute decisions may authorize actions")
-        if (self.mode is DecisionMode.RECOVER) != (self.recovery is not None):
-            raise ValueError("recover mode requires exactly one recovery request")
-        return self
+from .scratchpad import WorkingScratchpad
+from .transition import TransitionEvidence
+from .verification import VerificationResult
 
 
 class AgentContext(Contract):
@@ -75,23 +37,10 @@ class AgentContext(Contract):
     tasks: tuple[cognition.TaskView, ...] = ()
     world_models: tuple[WorldModel, ...] = ()
     recovery_evidence: RecoveryEvidence | None = None
-
-
-class ModelUsage(Contract):
-    input_tokens: int = Field(default=0, ge=0)
-    output_tokens: int = Field(default=0, ge=0)
-    latency_ms: int = Field(default=0, ge=0)
-
-
-class ModelAttempt(Contract):
-    attempt: int = Field(ge=1)
-    output_hash: str
-    valid: bool
-    validation_error: str | None = None
-    output_preview: str | None = None
-
-
-class ModelResponse(Contract):
-    decision: CognitiveDecision
-    usage: ModelUsage = Field(default_factory=ModelUsage)
-    attempts: tuple[ModelAttempt, ...] = ()
+    latest_transition: TransitionEvidence | None = None
+    latest_transition_event_id: str | None = None
+    latest_verification: VerificationResult | None = None
+    hypothesis_ledger: tuple[HypothesisLedgerEntry, ...] = ()
+    unresolved_contradictions: tuple[str, ...] = ()
+    action_evidence: tuple[ActionEvidence, ...] = ()
+    context_stats: ContextStats | None = None

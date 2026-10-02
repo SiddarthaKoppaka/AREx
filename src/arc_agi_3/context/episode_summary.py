@@ -2,6 +2,7 @@
 
 from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import EventEnvelope
+from arc_agi_3.evaluation_epistemic import verification_status
 
 
 def describe(
@@ -20,10 +21,16 @@ def describe(
                 )
         elif event.event_type is EventType.TRANSITION:
             changed = payload.get("changed_cells")
-            facts.append(f"Transition changed {changed} cells.")
+            moved = payload.get("translations")
+            count = len(moved) if isinstance(moved, list) else 0
+            facts.append(
+                f"Transition changed {changed} cells; {count} candidate translations."
+            )
         elif event.event_type is EventType.VERIFICATION:
-            if payload.get("passed") is False:
-                failures.append("Expected outcome verification failed.")
+            if verification_status(payload) == "mismatched":
+                failures.append(
+                    f"Prediction mismatched on {payload.get('mismatches')}."
+                )
         elif event.event_type is EventType.RECOVERY:
             if payload.get("status") == "failed":
                 failures.append(f"Recovery failed: {payload.get('reason', 'unknown')}.")

@@ -16,7 +16,7 @@ class EpisodeMemoryItem(Contract):
     failed_approaches: tuple[str, ...] = ()
     evidence_refs: tuple[str, ...]
     source_event_refs: tuple[str, ...]
-    events: tuple[ContextEvent, ...]
+    events: tuple[ContextEvent, ...] = ()  # exact events: retrieve by ref
 
 
 class EpisodeMemory(Contract):

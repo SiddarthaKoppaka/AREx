@@ -73,8 +73,9 @@ def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> N
 
 def test_recent_projection_keeps_complete_latest_turn(tmp_path: Path) -> None:
     events = store(tmp_path / "turns.jsonl")
-    for amount in range(5):
-        events.append(EventType.BUDGET, "budget", 4, {"amount": amount})
+    events.append(EventType.BUDGET, "budget", 4, {"amount": 1})
+    for index in range(5):
+        events.append(EventType.TOOL_RESULT, "tools", 4, {"index": index})
     context = project_context(
         4,
         observation(1),
@@ -86,4 +87,5 @@ def test_recent_projection_keeps_complete_latest_turn(tmp_path: Path) -> None:
         raw_recent_turns=1,
     )
     assert len(context.recent_events) == 5
+    assert EventType.BUDGET not in {item.event_type for item in context.recent_events}
     assert context.episodic_memory is None

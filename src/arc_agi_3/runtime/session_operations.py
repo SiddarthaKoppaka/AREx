@@ -32,6 +32,7 @@ def authorize_direct(
         choice.action,
         expected,
         checkpoint=turn % io.config.checkpoint_every == 0,
+        experiment=choice.experiment,
     )
 
 
