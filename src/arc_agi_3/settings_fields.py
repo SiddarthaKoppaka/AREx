@@ -23,11 +23,14 @@ class RuntimeFields(Contract):
     quantization: Literal["none", "nf4"] = "none"
     max_input_tokens: int = Field(default=30720, gt=0)
     max_context_tokens: int = Field(default=32768, gt=0)
-    soft_input_limit: int = Field(default=24576, gt=0)
+    compaction_pressure_start: int = Field(default=12000, gt=0)
+    active_context_target: int = Field(default=16000, gt=0)
+    template_and_generation_margin: int = Field(default=512, ge=0)
+    soft_input_limit: int = Field(default=12000, gt=0)
     hard_input_limit: int = Field(default=30720, gt=0)
     max_new_tokens: int = Field(default=1536, gt=0)
     generation_timeout_seconds: float = Field(default=180, gt=0)
-    max_repairs: int = Field(default=1, ge=0)
+    max_repairs: int = Field(default=1, ge=0, le=2)
     max_turns: int = Field(default=8, gt=0)
     max_actions: int = Field(default=40, gt=0)
     max_model_calls: int = Field(default=8, gt=0)
@@ -40,6 +43,7 @@ class RuntimeFields(Contract):
     raw_recent_turns: int = Field(default=2, ge=0)
     episodic_retrieval_limit: int = Field(default=6, ge=0)
     compact_context: bool = True
+    compact_observation: bool = True
     output_dir: Path = Path("runs")
     log_dir: Path = Path("runs/logs")
     live_trace_mode: Literal["silent", "readable", "json"] = "readable"
@@ -47,3 +51,4 @@ class RuntimeFields(Contract):
     model_staging: Literal["none", "copy_if_space"] = "none"
     model_cache_dir: Path | None = None
     require_gpu: bool = False
+    gpu_memory_instrumentation: bool = False

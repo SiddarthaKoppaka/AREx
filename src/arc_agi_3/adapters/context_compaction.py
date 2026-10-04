@@ -1,65 +1,55 @@
-"""Token-aware pruning of optional context before structured generation."""
+"""Token-aware pruning of optional context before the primary cognitive generation.
 
-from typing import Any, Protocol
+Only wraps the primary attempt: repair prompts are already small and never
+carry an `AgentContext`, so they never need this pass.
+"""
 
-from arc_agi_3.contracts.decision import AgentContext
+from typing import Any
 
+from arc_agi_3.contracts.decision import AgentContext, PromptReport
+
+from .context_limits import resolve_limits
 from .prompts import decision_prompt
 from .transformers_limits import InputTokenLimitError
 
 
-class TokenAwareBackend(Protocol):
-    config: Any
-
-    def input_token_count(self, prompt: str, schema: dict[str, Any]) -> int: ...
-
-
-def compact_for_backend(
-    context: AgentContext,
-    backend: object,
-    schema: dict[str, Any],
-    *,
-    prior_output: str | None = None,
-    validation_error: str | None = None,
-) -> AgentContext:
-    counter = getattr(backend, "input_token_count", None)
-    config = getattr(backend, "config", None)
-    configured_soft = getattr(config, "soft_input_limit", None)
-    hard = getattr(config, "max_input_tokens", None)
-    if (
-        not callable(counter)
-        or not isinstance(configured_soft, int)
-        or not isinstance(hard, int)
-    ):
-        return context
-    soft = min(configured_soft, hard)
+def compact_with_report(
+    context: AgentContext, backend: object, schema: dict[str, Any]
+) -> tuple[AgentContext, PromptReport | None]:
+    limits = resolve_limits(backend)
+    if limits is None:
+        return context, None
 
     def tokens(value: AgentContext) -> int:
-        prompt = decision_prompt(
-            value, prior_output=prior_output, validation_error=validation_error
+        return int(limits.counter(decision_prompt(value), schema))
+
+    def finish(value: AgentContext, after: int) -> tuple[AgentContext, PromptReport]:
+        memory = value.episodic_memory
+        report = PromptReport(
+            tokens_before_compaction=before,
+            tokens_after_compaction=after,
+            compacted=value is not context,
+            recent_events_after=len(value.recent_events),
+            episodic_items_after=len(memory.items) if memory else 0,
         )
-        return int(counter(prompt, schema))
-
-    actual = tokens(context)
-    if actual <= soft and actual <= hard:
-        return context
-    before = actual
-
-    def report(after: int) -> None:
         reporter = getattr(backend, "reporter", None)
-        if reporter is not None:
+        if reporter is not None and report.compacted:
             reporter.stage(
                 "context_compaction",
                 before_tokens=before,
                 after_tokens=after,
-                soft_limit=soft,
-                hard_limit=hard,
+                compaction_pressure_start=limits.pressure,
+                active_context_target=limits.target,
+                emergency_ceiling=limits.hard,
             )
+        return value, report
 
+    before = tokens(context)
+    if before <= limits.pressure and before <= limits.hard:
+        return finish(context, before)
     steps = sorted({event.step_id for event in context.recent_events})[-2:]
-    recent = tuple(event for event in context.recent_events if event.step_id in steps)[
-        -12:
-    ]
+    recent = tuple(event for event in context.recent_events if event.step_id in steps)
+    recent = recent[-12:]
     compacted = context.model_copy(
         update={
             "recent_events": recent,
@@ -80,12 +70,16 @@ def compact_for_backend(
             )
             compacted = compacted.model_copy(update={"episodic_memory": candidate})
             actual = tokens(compacted)
-            if actual <= soft:
-                report(actual)
-                return compacted
+            if actual <= limits.target:
+                return finish(compacted, actual)
     actual = tokens(compacted)
-    if actual > hard:
-        model = str(getattr(config, "model_name", "unknown"))
-        raise InputTokenLimitError(actual, hard, model, f"turn={context.turn}")
-    report(actual)
-    return compacted
+    if actual > limits.hard:
+        model = str(getattr(getattr(backend, "config", None), "model_name", "unknown"))
+        raise InputTokenLimitError(actual, limits.hard, model, f"turn={context.turn}")
+    return finish(compacted, actual)
+
+
+def compact_for_backend(
+    context: AgentContext, backend: object, schema: dict[str, Any]
+) -> AgentContext:
+    return compact_with_report(context, backend, schema)[0]

@@ -31,15 +31,46 @@ def initialize_run(
     )
 
 
-def record_failure(io: EpisodeIO, turn: int, error: Exception) -> None:
+def record_failure(
+    io: EpisodeIO, turn: int, error: Exception, *, action_pending: bool
+) -> None:
+    """A first-class recoverable event, not a silent crash: what to retry, what
+    is already safe (the last checkpoint), and what is still unverified."""
+    history = io.events.read()
     payload: dict[str, JsonValue] = {
+        "turn": turn,
         "error_type": type(error).__name__,
         "message": str(error),
+        "environment_action_pending": action_pending,
+        "checkpoint_available": any(
+            event.event_type is EventType.CHECKPOINT for event in history
+        ),
+        "last_decision_event_id": _last_decision_event_id(history),
     }
     details = getattr(error, "trace_payload", None)
     if isinstance(details, dict):
+        attempts = details.get("attempts")
+        payload["error_categories"] = _categories(attempts)
         payload["details"] = persist_debug_previews(details, io.events.path.parent)
     io.append(EventType.FAILURE, "runtime", turn, payload)
+
+
+def _last_decision_event_id(history: list[EventEnvelope]) -> str | None:
+    for event in reversed(history):
+        if event.event_type is EventType.MODEL_DECISION:
+            return event.event_id
+    return None
+
+
+def _categories(attempts: object) -> list[JsonValue]:
+    if not isinstance(attempts, list):
+        return []
+    seen: list[JsonValue] = []
+    for item in attempts:
+        category = item.get("error_category") if isinstance(item, dict) else None
+        if isinstance(category, str) and category not in seen:
+            seen.append(category)
+    return seen
 
 
 def finish_run(io: EpisodeIO, turn: int, reason: str) -> RunResult:

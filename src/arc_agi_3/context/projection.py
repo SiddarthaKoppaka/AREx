@@ -6,6 +6,7 @@ from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.contracts.retrieval import ContextEvent
 
+from .projection_keys import SUMMARY_KEYS
 from .retrieved_projection import retrieved_evidence
 
 
@@ -27,18 +28,9 @@ def _bounded(value: JsonValue, depth: int = 0) -> JsonValue:
 
 def _payload(event: EventEnvelope) -> dict[str, JsonValue]:
     source = event.payload
-    if event.event_type is EventType.OBSERVATION:
-        keys = (
-            "game_id",
-            "observation_hash",
-            "state",
-            "levels_completed",
-            "win_levels",
-            "available_actions",
-            "guid",
-            "full_reset",
-        )
-        return {key: source[key] for key in keys if key in source}
+    if event.event_type in SUMMARY_KEYS:
+        keys = SUMMARY_KEYS[event.event_type]
+        return {key: _bounded(source[key]) for key in keys if key in source}
     if event.event_type is EventType.MODEL_DECISION:
         decision = source.get("decision")
         if isinstance(decision, dict):

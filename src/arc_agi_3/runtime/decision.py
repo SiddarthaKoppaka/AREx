@@ -18,7 +18,11 @@ PUBLIC_RATIONALE_FIELDS = (
     "observation_summary",
     "expected_result",
 )
-OPTIONAL_DECISION_FIELDS = (*PUBLIC_RATIONALE_FIELDS, "scratchpad_updates")
+OPTIONAL_DECISION_FIELDS = (
+    *PUBLIC_RATIONALE_FIELDS,
+    "scratchpad_updates",
+    "experiment",
+)
 
 
 @dataclass(frozen=True)
@@ -36,8 +40,9 @@ def request_decision(
     observed: EventEnvelope,
 ) -> RecordedDecision:
     budget = io.spend(Resource.MODEL_CALLS, 1, turn)
+    context = io.context(turn, observation)
     try:
-        response = model.decide(io.context(turn, observation))
+        response = model.decide(context)
     except StructuredOutputError as error:
         record_model_usage(io, error.usage, turn, budget.event_id)
         raise
@@ -56,6 +61,12 @@ def request_decision(
                 item.model_dump(mode="json", exclude_none=True)
                 for item in response.attempts
             ],
+            "context": context.context_stats.model_dump(mode="json")
+            if context.context_stats
+            else None,
+            "prompt": response.prompt.model_dump(mode="json")
+            if response.prompt
+            else None,
         },
         (budget.event_id, observed.event_id),
     )

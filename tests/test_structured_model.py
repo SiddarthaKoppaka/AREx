@@ -48,7 +48,8 @@ def test_invalid_json_is_repaired_by_the_model() -> None:
     response = StructuredModelAdapter(backend, max_repairs=1).decide(context())
     assert [attempt.valid for attempt in response.attempts] == [False, True]
     assert response.usage == ModelUsage(input_tokens=4, output_tokens=6, latency_ms=8)
-    assert "Preserve your decision semantics" in backend.prompts[1]
+    assert "Preserve the original semantic intent" in backend.prompts[1]
+    assert "CURRENT_OBSERVATION" not in backend.prompts[1]
     assert "private chain-of-thought" in backend.prompts[0]
     assert "execute mode must set exactly one" in backend.prompts[0]
     assert "Do not use Markdown code fences" in backend.prompts[0]
@@ -116,4 +117,4 @@ def test_exhausted_repairs_count_every_generation_with_bounded_debug_preview() -
     assert caught.value.trace_payload["generation_attempts"] == 2
     attempts = caught.value.trace_payload["attempts"]
     assert isinstance(attempts, list)
-    assert len(attempts[0]["output_preview"]) == 512
+    assert len(attempts[0]["output_preview"]) == 300

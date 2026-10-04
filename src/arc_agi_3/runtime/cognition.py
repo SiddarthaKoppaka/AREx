@@ -6,6 +6,7 @@ from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import EventEnvelope
 
 from .io import EpisodeIO
+from .task_validation import validate_task_updates
 from .tools import run_tool
 
 
@@ -15,15 +16,19 @@ def apply_cognitive_decision(
     decision: CognitiveDecision,
     step: int,
 ) -> None:
+    prior = [e for e in io.events.read() if e.event_id != decision_event.event_id]
+    known = {event.event_id for event in prior}
+    observed = {
+        event.event_id
+        for event in prior
+        if event.event_type is not EventType.MODEL_DECISION
+    }
+    validate_task_updates(io, decision.task_updates, known)
+    io.workspace.tasks.validate_many(decision.task_updates)
     prepared_scratchpad = None
     if decision.scratchpad_updates is not None:
-        known = {
-            event.event_id
-            for event in io.events.read()
-            if event.event_id != decision_event.event_id
-        }
         prepared_scratchpad = io.workspace.scratchpad.prepare(
-            decision.scratchpad_updates, known
+            decision.scratchpad_updates, observed
         )
     if decision.hypothesis_proposals or decision.hypothesis_updates:
         require_capability(io.config.ablations.hypotheses, "hypotheses")
@@ -31,15 +36,7 @@ def apply_cognitive_decision(
         require_capability(io.config.ablations.tasks, "tasks")
     if decision.world_model_updates:
         require_capability(io.config.ablations.world_models, "world_models")
-    proposals = io.workspace.beliefs.add_many(decision.hypothesis_proposals)
-    if proposals:
-        io.append(
-            EventType.HYPOTHESIS,
-            "beliefs",
-            step,
-            {"versions": [item.model_dump(mode="json") for item in proposals]},
-            (decision_event.event_id,),
-        )
+    # Revise existing beliefs first so their expected versions match context.
     for request in decision.hypothesis_updates:
         versions = io.workspace.beliefs.apply(request)
         io.append(
@@ -50,6 +47,15 @@ def apply_cognitive_decision(
                 "request": request.model_dump(mode="json"),
                 "versions": [item.model_dump(mode="json") for item in versions],
             },
+            (decision_event.event_id,),
+        )
+    proposals = io.workspace.beliefs.add_many(decision.hypothesis_proposals, step)
+    if proposals:
+        io.append(
+            EventType.HYPOTHESIS,
+            "beliefs",
+            step,
+            {"versions": [item.model_dump(mode="json") for item in proposals]},
             (decision_event.event_id,),
         )
     tasks = io.workspace.tasks.apply_many(decision.task_updates)

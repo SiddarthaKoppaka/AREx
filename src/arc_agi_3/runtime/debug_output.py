@@ -6,6 +6,8 @@ from pydantic import JsonValue
 
 from arc_agi_3.trace.canonical import canonical_json
 
+_PREVIEW_KEYS = ("output_preview", "output_preview_tail")
+
 
 def persist_debug_previews(
     details: dict[str, JsonValue], run_dir: Path
@@ -20,11 +22,13 @@ def persist_debug_previews(
             cleaned.append(item)
             continue
         without_preview = dict(item)
-        preview = without_preview.pop("output_preview", None)
-        if isinstance(preview, str):
-            previews.append(
-                {"attempt": item.get("attempt"), "output_preview": preview[:512]}
-            )
+        found = {
+            key: text[:512]
+            for key in _PREVIEW_KEYS
+            if isinstance((text := without_preview.pop(key, None)), str)
+        }
+        if found:
+            previews.append({"attempt": item.get("attempt"), **found})
         cleaned.append(without_preview)
     if previews:
         (run_dir / "invalid_model_outputs.json").write_text(

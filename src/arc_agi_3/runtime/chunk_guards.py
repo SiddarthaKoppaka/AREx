@@ -32,7 +32,7 @@ def post_step(
 ) -> tuple[str | None, ExecutionStatus]:
     if outcome.observation.state in {EnvironmentState.WIN, EnvironmentState.GAME_OVER}:
         return "terminal_state", ExecutionStatus.HARD_STOP
-    if chunk.stop_on_mismatch and not outcome.verification.passed:
+    if chunk.stop_on_mismatch and outcome.verification.passed is False:
         return "prediction_mismatch", ExecutionStatus.HARD_STOP
     threshold = chunk.soft_interrupt_changed_cells
     if threshold is not None and outcome.verification.delta.changed_cells >= threshold:

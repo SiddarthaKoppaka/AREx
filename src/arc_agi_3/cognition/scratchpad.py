@@ -5,6 +5,8 @@ from pydantic import JsonValue, TypeAdapter
 from arc_agi_3.contracts.scratchpad import ScratchpadUpdates, WorkingScratchpad
 from arc_agi_3.trace.canonical import canonical_json
 
+from .scratchpad_merge import merge_facts, merge_next_test
+
 
 class ScratchpadStore:
     def __init__(
@@ -24,17 +26,7 @@ class ScratchpadStore:
         self, updates: ScratchpadUpdates, valid_evidence: set[str]
     ) -> WorkingScratchpad:
         before = self.current
-        facts = {item.fact_id: item for item in before.verified_facts}
-        for fact in updates.add_verified_fact:
-            if not set(fact.evidence_refs) <= valid_evidence:
-                raise ValueError(
-                    "verified scratchpad facts require known evidence refs"
-                )
-            prior = facts.get(fact.fact_id)
-            expected = 1 if prior is None else prior.version + 1
-            if fact.version != expected:
-                raise ValueError(f"scratchpad fact requires version {expected}")
-            facts[fact.fact_id] = fact
+        next_test, revisions = merge_next_test(before, updates)
         questions = [
             item
             for item in before.open_questions
@@ -46,7 +38,7 @@ class ScratchpadStore:
         values = {
             "version": before.version + 1,
             "objective": updates.set_objective or before.objective,
-            "verified_facts": tuple(facts[key] for key in sorted(facts)),
+            "verified_facts": merge_facts(before, updates, valid_evidence),
             "action_model": {**before.action_model, **updates.action_model_updates},
             "active_plan": updates.revise_plan
             if updates.revise_plan is not None
@@ -54,7 +46,8 @@ class ScratchpadStore:
             "open_questions": tuple(questions),
             "last_useful_result": updates.set_last_useful_result
             or before.last_useful_result,
-            "next_test": updates.set_next_test or before.next_test,
+            "next_test": next_test,
+            "plan_revisions": revisions,
             "capabilities": before.capabilities,
         }
         updated = before.model_copy(update=values)

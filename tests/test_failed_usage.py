@@ -35,7 +35,9 @@ def test_failed_structured_generations_retain_usage(tmp_path: Path) -> None:
         budget=BudgetConfig(limits={Resource.MODEL_CALLS: 4, Resource.ACTIONS: 4}),
     )
     runner = build_runner(
-        config, FakeLineEnvironment(), StructuredModelAdapter(InvalidBackend())
+        config,
+        FakeLineEnvironment(),
+        StructuredModelAdapter(InvalidBackend(), max_repairs=1),
     )
     result = runner.run()
     assert result.stop_reason == "failure"

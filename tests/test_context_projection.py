@@ -32,7 +32,9 @@ def store(path: Path) -> JsonlEventStore:
     )
 
 
-def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> None:
+def test_current_frame_is_compact_by_default_and_history_is_compacted(
+    tmp_path: Path,
+) -> None:
     events = store(tmp_path / "events.jsonl")
     old, current = observation(2), observation(3)
     first = events.append(
@@ -44,7 +46,7 @@ def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> N
         1,
         {"action": {"action_id": 1}, "before_hash": old.observation_hash},
     )
-    events.append(
+    current_observed = events.append(
         EventType.OBSERVATION, "environment", 1, current.model_dump(mode="json")
     )
     context = project_context(
@@ -56,8 +58,11 @@ def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> N
         AblationConfig(),
     )
     prompt = decision_prompt(context)
-    assert prompt.count('"frame":') == 1
+    assert '"frame":' not in prompt
+    assert '"encoding":"row_rle_v1"' not in prompt
     assert '"frame":[[[2' not in prompt
+    assert '"dimensions"' in prompt
+    assert context.current_observation_event_id == current_observed.event_id
     assert context.recent_events[0].payload["observation_hash"] == old.observation_hash
     assert context.recent_events[1].payload["action"] == {"action_id": 1}
     assert context.recent_event_refs[0] == first.event_id
@@ -71,8 +76,9 @@ def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> N
 
 def test_recent_projection_keeps_complete_latest_turn(tmp_path: Path) -> None:
     events = store(tmp_path / "turns.jsonl")
-    for amount in range(5):
-        events.append(EventType.BUDGET, "budget", 4, {"amount": amount})
+    events.append(EventType.BUDGET, "budget", 4, {"amount": 1})
+    for index in range(5):
+        events.append(EventType.TOOL_RESULT, "tools", 4, {"index": index})
     context = project_context(
         4,
         observation(1),
@@ -84,4 +90,5 @@ def test_recent_projection_keeps_complete_latest_turn(tmp_path: Path) -> None:
         raw_recent_turns=1,
     )
     assert len(context.recent_events) == 5
+    assert EventType.BUDGET not in {item.event_type for item in context.recent_events}
     assert context.episodic_memory is None

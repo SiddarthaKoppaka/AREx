@@ -11,11 +11,12 @@ from pydantic import JsonValue
 from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import EventEnvelope
 
+from .artifacts import EventArtifactStore
 from .canonical import canonical_hash, canonical_json
 
 
 class TraceIntegrityError(ValueError):
-    pass
+    """Raised when the append-only hash chain is invalid."""
 
 
 class JsonlEventStore:
@@ -37,7 +38,9 @@ class JsonlEventStore:
         self.id_factory = id_factory or (lambda: str(uuid4()))
         self.observers = tuple(observers)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.artifacts = EventArtifactStore(self.path.parent / "artifacts")
         existing = self.read() if self.path.exists() else []
+        self.artifacts.archive_many(existing)
         self.sequence = len(existing)
         self.last_hash = existing[-1].event_hash if existing else None
 
@@ -75,6 +78,7 @@ class JsonlEventStore:
             os.fsync(stream.fileno())
         self.sequence += 1
         self.last_hash = event.event_hash
+        self.artifacts.archive(event)
         for observer in self.observers:
             observer(event)
         return event

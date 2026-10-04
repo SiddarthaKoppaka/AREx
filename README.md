@@ -203,13 +203,22 @@ trace for observability but are not replayed as full reasoning history. Raw
 events remain authoritative and exact retrieval remains available.
 
 Before Transformers generation, AREx tokenizes the complete prompt and schema.
-Above `soft_input_limit`, it keeps the latest complete turns and drops
-lower-priority episodic memories. Above `hard_input_limit`, generation is
-refused without truncating the current observation, schema, or instructions.
-The Colab profile uses a 16,384-token context, 12,000-token soft limit,
-14,500-token hard limit, and 1,024 generation tokens. The scratchpad budget is
-enforced with a deterministic token estimate. `scratchpad_token_budget`,
-`raw_recent_turns`, and `episodic_retrieval_limit` bound the memory layers.
+`compaction_pressure_start` triggers derived-context reduction;
+`active_context_target` is the efficiency target. The emergency ceiling is
+computed as the model context window minus generation tokens and an explicit
+template margin. AREx refuses generation above that ceiling without truncating
+the current observation, schema, or instructions. Colab uses pressure 12,000,
+target 13,500, and ceiling 14,848. Kaggle independently uses pressure 12,000,
+target 16,000, and ceiling 30,208.
+
+Current frames use lossless RLE when it is smaller than raw JSON. Large event
+payloads are copied into local content-addressed artifacts while canonical
+`events.jsonl` remains authoritative. The LM can request bounded metadata,
+summary, transition-delta, RLE, region, or full evidence views, and can archive
+and reopen compact phase handoffs. Its existing versioned task DAG owns phase
+selection and completion; the harness only validates dependencies, evidence,
+budgets, artifact hashes, and completion handoffs. These operations stay inside
+the offline Kaggle process and do not add specialist model calls.
 
 `live_trace_mode` supports `silent`, `readable`, and `json`. Readable mode shows
 public decisions, actions, usage, budgets, and outcomes; JSON mode streams full

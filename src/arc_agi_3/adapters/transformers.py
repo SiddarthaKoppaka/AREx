@@ -6,9 +6,10 @@ from typing import Any
 from arc_agi_3.contracts.decision import ModelUsage
 from arc_agi_3.trace.canonical import canonical_json
 
+from . import transformers_limits as limits
 from .inference import BackendGeneration
+from .model_invocation import run_model
 from .transformers_config import TransformersConfig as TransformersConfig
-from .transformers_limits import InputTokenLimitError, StageReporter
 from .transformers_loader import load_transformers
 
 
@@ -19,7 +20,7 @@ class TransformersBackend:
         *,
         model: Any | None = None,
         tokenizer: Any | None = None,
-        reporter: StageReporter | None = None,
+        reporter: limits.StageReporter | None = None,
     ) -> None:
         if (model is None) != (tokenizer is None):
             raise ValueError("model and tokenizer must be supplied together")
@@ -29,7 +30,7 @@ class TransformersBackend:
             started = perf_counter()
             if reporter:
                 reporter.stage("model_load_start", model=config.model_name)
-            self.model, self.tokenizer = self._load()
+            self.model, self.tokenizer = load_transformers(config)
             if reporter:
                 reporter.stage(
                     "model_load_finish", seconds=round(perf_counter() - started, 3)
@@ -38,19 +39,20 @@ class TransformersBackend:
             assert tokenizer is not None
             self.model, self.tokenizer = model, tokenizer
 
-    def _load(self) -> tuple[Any, Any]:
-        return load_transformers(self.config)
-
     @property
     def metadata(self) -> dict[str, Any]:
         return self.config.metadata()
 
+    @property
+    def effective_max_input_tokens(self) -> int:
+        return limits.effective_input_limit(self.config, self.model)
+
     def generate(self, prompt: str, json_schema: dict[str, Any]) -> BackendGeneration:
         inputs = self._tokenize(prompt, json_schema)
         input_tokens = int(inputs["input_ids"].shape[-1])
-        if input_tokens > self.config.max_input_tokens:
-            raise InputTokenLimitError(
-                input_tokens, self.config.max_input_tokens, self.config.model_name
+        if input_tokens > self.effective_max_input_tokens:
+            raise limits.InputTokenLimitError(
+                input_tokens, self.effective_max_input_tokens, self.config.model_name
             )
         if hasattr(inputs, "to"):
             inputs = inputs.to(self.model.device)
@@ -72,27 +74,23 @@ class TransformersBackend:
         )
 
     def _generate(self, inputs: Any, input_tokens: int) -> BackendGeneration:
-        started = perf_counter()
-        if self.reporter:
-            self.reporter.stage("generation_start", input_tokens=input_tokens)
-        try:
-            output = self.model.generate(
-                **inputs,
-                max_new_tokens=self.config.max_new_tokens,
-                max_time=self.config.max_time_seconds,
-                do_sample=False,
-            )[0][input_tokens:]
-        finally:
-            if self.reporter:
-                self.reporter.stage(
-                    "generation_finish", seconds=round(perf_counter() - started, 3)
-                )
-        latency_ms = round((perf_counter() - started) * 1000)
+        output, latency_ms = run_model(
+            self.model,
+            inputs,
+            input_tokens,
+            max_new_tokens=self.config.max_new_tokens,
+            max_time_seconds=self.config.max_time_seconds,
+            reporter=self.reporter,
+            memory_instrumentation=self.config.gpu_memory_instrumentation,
+        )
+        text = self.tokenizer.decode(output, skip_special_tokens=True)
+        output_tokens = len(output)
+        del inputs, output
         return BackendGeneration(
-            text=self.tokenizer.decode(output, skip_special_tokens=True),
+            text=text,
             usage=ModelUsage(
                 input_tokens=input_tokens,
-                output_tokens=len(output),
+                output_tokens=output_tokens,
                 latency_ms=latency_ms,
             ),
         )

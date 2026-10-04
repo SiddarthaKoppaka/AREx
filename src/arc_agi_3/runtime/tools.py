@@ -20,7 +20,7 @@ def run_tool(
     )
     try:
         result = execute_tool(io, request, requested, step)
-    except (KeyError, ValueError) as error:
+    except (FileNotFoundError, KeyError, ValueError) as error:
         result = ToolResult(
             request_id=request.request_id,
             status="failed",

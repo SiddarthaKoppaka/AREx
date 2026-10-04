@@ -6,6 +6,8 @@ from arc_agi_3.contracts.enums import BeliefOperation
 
 from .belief_math import update_odds
 
+AGAINST = {BeliefOperation.WEAKEN, BeliefOperation.CONTRADICT, BeliefOperation.REJECT}
+
 
 def stage_update(
     config: BeliefConfig,
@@ -31,14 +33,18 @@ def stage_update(
 def _updated_target(
     config: BeliefConfig, target: Hypothesis, request: BeliefUpdate
 ) -> Hypothesis:
-    evidence = tuple(dict.fromkeys((*target.evidence_refs, *request.evidence_refs)))
-    updates: dict[str, object] = {"evidence_refs": evidence}
+    """Apply exactly the LM-requested change; no confidence is ever inferred."""
+    refs = "contradicting_refs" if request.operation in AGAINST else "evidence_refs"
+    updates: dict[str, object] = {
+        refs: _merged(getattr(target, refs), request.evidence_refs),
+        "prediction_ids": _merged(target.prediction_ids, request.prediction_ids),
+    }
     numeric = {
         BeliefOperation.SUPPORT,
         BeliefOperation.WEAKEN,
         BeliefOperation.CONTRADICT,
     }
-    if request.operation in numeric:
+    if request.operation in numeric and request.confidence is None:
         factor = config.multiplier(request.operation.value, request.strength)
         probability = target.probability * factor
         updates["probability"] = (
@@ -54,7 +60,15 @@ def _updated_target(
         updates["status"] = "suspended"
     elif request.operation is BeliefOperation.REJECT:
         updates.update(status="rejected", probability=0.0)
+    elif request.operation is BeliefOperation.ACCEPT:
+        updates["status"] = "accepted"
+    if request.confidence is not None:
+        updates["probability"] = request.confidence
     return target.model_copy(update=updates)
+
+
+def _merged(existing: tuple[str, ...], added: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys((*existing, *added)))
 
 
 def _require_related(

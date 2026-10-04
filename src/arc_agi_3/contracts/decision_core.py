@@ -1,0 +1,62 @@
+"""Structured public decision interface for the LM agent."""
+
+from typing import Annotated
+
+from pydantic import Field, StringConstraints, model_validator
+
+from arc_agi_3.world_model.contracts import WorldModel
+
+from . import cognition
+from .base import Contract
+from .enums import DecisionMode, Resource
+from .execution import ActionChunk, ExpectedOutcome
+from .observation import Action
+from .prediction import Experiment
+from .recovery import RecoveryRequest
+from .scratchpad import ScratchpadUpdates
+
+
+class BudgetRequest(Contract):
+    resource: Resource
+    amount: int = Field(gt=0)
+
+
+PublicSummary = Annotated[str, StringConstraints(max_length=512)]
+
+
+class CognitiveDecision(Contract):
+    assessment: str
+    intent: str
+    considered_options: tuple[PublicSummary, ...] = Field(default=(), max_length=5)
+    decision_summary: PublicSummary | None = None
+    observation_summary: PublicSummary | None = None
+    expected_result: PublicSummary | None = None
+    mode: DecisionMode
+    scratchpad_updates: ScratchpadUpdates | None = None
+    evidence_refs: tuple[str, ...] = ()
+    hypothesis_proposals: tuple[cognition.Hypothesis, ...] = ()
+    hypothesis_updates: tuple[cognition.BeliefUpdate, ...] = ()
+    task_updates: tuple[cognition.TaskRecord, ...] = ()
+    world_model_updates: tuple[WorldModel, ...] = ()
+    plan: cognition.PlanRecord | None = None
+    tool_requests: tuple[cognition.ToolRequest, ...] = ()
+    action: Action | None = None
+    action_chunk: ActionChunk | None = None
+    expected_outcome: ExpectedOutcome | None = None
+    experiment: Experiment | None = None
+    budget_requests: tuple[BudgetRequest, ...] = ()
+    uncertainty: str | None = None
+    recovery: RecoveryRequest | None = None
+
+    @model_validator(mode="after")
+    def action_matches_mode(self) -> "CognitiveDecision":
+        authorizations = int(self.action is not None) + int(
+            self.action_chunk is not None
+        )
+        if self.mode is DecisionMode.EXECUTE and authorizations != 1:
+            raise ValueError("execute decisions require exactly one LM authorization")
+        if self.mode is not DecisionMode.EXECUTE and authorizations:
+            raise ValueError("only execute decisions may authorize actions")
+        if (self.mode is DecisionMode.RECOVER) != (self.recovery is not None):
+            raise ValueError("recover mode requires exactly one recovery request")
+        return self

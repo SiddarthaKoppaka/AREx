@@ -10,13 +10,20 @@ from .observation import Action
 
 
 class Hypothesis(Contract):
+    """Model-owned claim; `probability` is the model's own confidence."""
+
     hypothesis_id: str
     version: int = Field(ge=1)
     claim: str
     probability: float = Field(ge=0.0, le=1.0)
     evidence_refs: tuple[str, ...] = ()
+    contradicting_refs: tuple[str, ...] = ()
+    prediction_ids: tuple[str, ...] = ()
     belief_group: str | None = None
-    status: Literal["active", "suspended", "rejected"] = "active"
+    status: Literal["active", "suspended", "rejected", "accepted"] = "active"
+    created_turn: int | None = Field(default=None, ge=0)
+    supersedes: tuple[str, ...] = ()
+    superseded_by: str | None = None
 
 
 class BeliefUpdate(Contract):
@@ -27,19 +34,29 @@ class BeliefUpdate(Contract):
     evidence_refs: tuple[str, ...]
     revised_claim: str | None = None
     related_hypothesis_ids: tuple[str, ...] = ()
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    prediction_ids: tuple[str, ...] = ()
+
+
+class TaskHandoff(Contract):
+    summary: str = Field(min_length=1, max_length=1024)
+    artifact_refs: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = Field(min_length=1)
+    unresolved_questions: tuple[str, ...] = ()
 
 
 class TaskRecord(Contract):
     task_id: str
     version: int = Field(ge=1)
-    purpose: str
-    success_criteria: str
+    purpose: str = Field(min_length=1, max_length=240)
+    success_criteria: str = Field(min_length=1, max_length=240)
     dependencies: tuple[str, ...] = ()
     evidence_refs: tuple[str, ...] = ()
     hypothesis_refs: tuple[str, ...] = ()
     budget_limits: dict[Resource, int] = Field(default_factory=dict)
     priority: int = 0
     status: TaskStatus = TaskStatus.OPEN
+    handoff: TaskHandoff | None = None
 
     @model_validator(mode="after")
     def valid_budget(self) -> "TaskRecord":

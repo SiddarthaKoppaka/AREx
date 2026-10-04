@@ -10,6 +10,11 @@ def retrieved_evidence(source: dict[str, JsonValue]) -> dict[str, JsonValue] | N
     output = result.get("output")
     if not isinstance(output, dict):
         return None
+    for key in ("evidence", "retrodiction"):
+        if isinstance(output.get(key), dict):
+            return {"status": result.get("status"), key: output[key]}
+    if "artifact_ref" in output and "content" in output:
+        return {"status": result.get("status"), "artifact": output}
     retrieval = output.get("retrieval")
     if not isinstance(retrieval, dict):
         return None

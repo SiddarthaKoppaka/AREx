@@ -1,9 +1,6 @@
 """Typed, hashable runtime and ablation configuration."""
 
-import json
-import tomllib
 from pathlib import Path
-from typing import Any
 
 from pydantic import Field
 
@@ -79,6 +76,7 @@ class RunConfig(Contract):
     raw_recent_turns: int = Field(default=2, ge=0)
     episodic_retrieval_limit: int = Field(default=6, ge=0)
     context_compaction: bool = True
+    compact_observation: bool = True
     budget: BudgetConfig = Field(default_factory=BudgetConfig)
     evaluator: EvaluatorConfig = Field(default_factory=EvaluatorConfig)
     belief: BeliefConfig = Field(default_factory=BeliefConfig)
@@ -87,14 +85,3 @@ class RunConfig(Contract):
     @property
     def config_hash(self) -> str:
         return canonical_hash(self.model_dump(mode="json", exclude={"output_dir"}))
-
-
-def load_config(path: Path) -> RunConfig:
-    if path.suffix == ".toml":
-        with path.open("rb") as stream:
-            values: dict[str, Any] = tomllib.load(stream)
-    elif path.suffix == ".json":
-        values = json.loads(path.read_text())
-    else:
-        raise ValueError("configuration must be TOML or JSON")
-    return RunConfig.model_validate(values)

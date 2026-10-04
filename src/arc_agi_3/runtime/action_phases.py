@@ -4,9 +4,11 @@ from arc_agi_3.contracts.enums import EventType, Resource
 from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.contracts.execution import ExpectedOutcome
 from arc_agi_3.contracts.observation import Action, Observation
+from arc_agi_3.contracts.prediction import Experiment
 from arc_agi_3.verification import verify_outcome
 
 from .action_types import ActionOutcome, AuthorizedAction
+from .experiments import plan_fields, record_experiment
 from .io import EpisodeIO
 
 
@@ -21,6 +23,7 @@ def authorize_action(
     checkpoint: bool,
     checkpoint_suffix: int | None = None,
     extra_causes: tuple[str, ...] = (),
+    experiment: Experiment | None = None,
 ) -> AuthorizedAction:
     if action.action_id not in before.available_actions:
         raise ValueError("LM-selected action is not currently authorized")
@@ -32,9 +35,11 @@ def authorize_action(
         {
             "action": action.model_dump(mode="json"),
             "before_hash": before.observation_hash,
+            **plan_fields(io, action),
         },
         (decision.event_id, *extra_causes),
     )
+    record_experiment(io, turn, decision, acted, before, action, expected, experiment)
     return AuthorizedAction(
         turn, before, decision, action, expected, acted, checkpoint, checkpoint_suffix
     )
@@ -62,7 +67,7 @@ def record_action_result(
         EventType.VERIFICATION,
         "verifier",
         pending.turn,
-        result.model_dump(mode="json"),
+        result.model_dump(mode="json", exclude={"delta"}),
         (pending.decision.event_id, transition.event_id),
     )
     if pending.checkpoint:
