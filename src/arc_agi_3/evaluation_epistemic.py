@@ -24,11 +24,19 @@ def epistemic_counts(events: list[EventEnvelope]) -> dict[str, int]:
     ]
     experiments = [e for e in events if e.event_type is EventType.EXPERIMENT]
     repeats = [e.payload.get("repeat") for e in experiments]
+    mismatched, matched, unchecked = (
+        statuses.count("mismatched"),
+        statuses.count("matched"),
+        statuses.count("unchecked"),
+    )
     return {
-        "prediction_mismatches": statuses.count("mismatched"),
-        "predictions_matched": statuses.count("matched"),
-        "predictions_unchecked": statuses.count("unchecked"),
+        "prediction_mismatches": mismatched,
+        "predictions_matched": matched,
+        "predictions_unchecked": unchecked,
         "actions_without_prediction": statuses.count("no_prediction"),
+        "predictions_supplied": mismatched + matched + unchecked,
+        "predictions_checked": mismatched + matched,
+        "hypotheses_created": _hypotheses_created(events),
         "experiments": sum(
             e.payload.get("experiment") is not None for e in experiments
         ),
@@ -48,3 +56,12 @@ def epistemic_counts(events: list[EventEnvelope]) -> dict[str, int]:
             for e in events
         ),
     }
+
+
+def _hypotheses_created(events: list[EventEnvelope]) -> int:
+    total = 0
+    for event in events:
+        versions = event.payload.get("versions", [])
+        if event.event_type is EventType.HYPOTHESIS and isinstance(versions, list):
+            total += len(versions)
+    return total

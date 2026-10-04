@@ -41,10 +41,9 @@ TOOLS = (
     "inspect_frame_region; check_prediction_history (prediction, optional "
     "action, limit) to test a prediction against past transitions; "
     "archive_artifact / retrieve_artifact; retrieve_events. Older evidence is "
-    "omitted from context but always retrievable by event ID.\n"
-)
-
-REPAIR = (
-    "\nYour previous output was structurally invalid. Preserve your decision "
-    "semantics and return corrected JSON only.\nVALIDATION_ERROR:\n"
+    "omitted from context but always retrievable by event ID. "
+    "CURRENT_OBSERVATION omits the exact grid by default: use retrieve_evidence "
+    "with event_ids=[current_observation_event_id] (view=full or rle_frame) or "
+    "inspect_frame_region for a crop whenever the mechanical summary is not "
+    "enough.\n"
 )

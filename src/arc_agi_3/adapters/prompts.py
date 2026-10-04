@@ -1,4 +1,8 @@
-"""Bounded working-set prompt projection."""
+"""Bounded working-set prompt projection for the primary cognitive generation.
+
+Repair generations use `repair_prompt.build_repair_prompt` instead and never
+pass through here: this prompt is cognition, not format repair.
+"""
 
 from typing import Any
 
@@ -7,14 +11,20 @@ from arc_agi_3.contracts.decision import AgentContext
 from .episode_projection import episode_prompt_view
 from .observation_projection import observation_view
 from .prompt_render import render
-from .prompt_text import CONTRACT, EPISTEMICS, REPAIR, TOOLS
+from .prompt_text import CONTRACT, EPISTEMICS, TOOLS
 from .task_projection import task_prompt_view
 
 
 def _sections(context: AgentContext) -> tuple[tuple[str, Any], ...]:
     verification = context.latest_verification
     return (
-        ("CURRENT_OBSERVATION", observation_view(context.observation)),
+        (
+            "CURRENT_OBSERVATION",
+            observation_view(
+                context.observation, include_raw_frame=not context.compact_observation
+            ),
+        ),
+        ("CURRENT_OBSERVATION_EVENT_ID", context.current_observation_event_id),
         (
             "LATEST_TRANSITION",
             {
@@ -48,16 +58,6 @@ def _sections(context: AgentContext) -> tuple[tuple[str, Any], ...]:
     )
 
 
-def decision_prompt(
-    context: AgentContext,
-    *,
-    prior_output: str | None = None,
-    validation_error: str | None = None,
-) -> str:
+def decision_prompt(context: AgentContext) -> str:
     body = "\n".join(f"{name}:\n{render(value)}" for name, value in _sections(context))
-    base = CONTRACT + EPISTEMICS + TOOLS + "CONTEXT:\n" + body
-    if validation_error is None:
-        return base
-    return (
-        base + REPAIR + validation_error + "\nPREVIOUS_OUTPUT:\n" + (prior_output or "")
-    )
+    return CONTRACT + EPISTEMICS + TOOLS + "CONTEXT:\n" + body

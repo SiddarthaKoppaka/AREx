@@ -1,100 +1,52 @@
-"""Validated structured-output adapter with LM-owned repair attempts."""
+"""Validated, bounded structured-output adapter.
 
-import json
+`max_repairs` is hard-capped at `GENERATION_CEILING` so a bad parse can never
+balloon into dozens of full-cost regenerations; see `generation_loop` for how
+a repair attempt differs from the primary cognitive generation.
+"""
 
-from pydantic import JsonValue, ValidationError
+from pydantic import JsonValue
 
-from arc_agi_3.contracts.decision import (
-    AgentContext,
-    CognitiveDecision,
-    ModelAttempt,
-    ModelResponse,
-    ModelUsage,
-)
-from arc_agi_3.trace.canonical import canonical_hash
+from arc_agi_3.contracts.decision import AgentContext, ModelResponse
 
-from .context_compaction import compact_with_report
-from .decision_schema import decision_schema
+from .generation_loop import run_generation
 from .inference import InferenceBackend
-from .prompts import decision_prompt
-from .structured_output import (
-    StructuredOutputError,
-    parse_json_object,
-    validation_error_text,
-)
+from .structured_output import StructuredOutputError as StructuredOutputError
+from .structured_output import parse_json_object as parse_json_object
+
+GENERATION_CEILING = 2
+PREVIEW_CHARS = 300
 
 
 class StructuredModelAdapter:
     def __init__(
         self,
         backend: InferenceBackend,
-        max_repairs: int = 1,
+        max_repairs: int = GENERATION_CEILING,
         persist_invalid_output: bool = False,
+        preview_chars: int = PREVIEW_CHARS,
     ) -> None:
-        if max_repairs < 0:
-            raise ValueError("max_repairs must be non-negative")
+        if not 0 <= max_repairs <= GENERATION_CEILING:
+            raise ValueError(f"max_repairs must be between 0 and {GENERATION_CEILING}")
         self.backend, self.max_repairs = backend, max_repairs
         self.persist_invalid_output = persist_invalid_output
+        self.preview_chars = preview_chars
 
     @property
     def metadata(self) -> dict[str, JsonValue]:
         return {
             "adapter": "structured-model",
             "max_repairs": self.max_repairs,
+            "generation_ceiling": GENERATION_CEILING,
             "persist_invalid_output": self.persist_invalid_output,
             "backend": self.backend.metadata,
         }
 
     def decide(self, context: AgentContext) -> ModelResponse:
-        attempts: list[ModelAttempt] = []
-        input_tokens = output_tokens = latency_ms = 0
-        prior: str | None = None
-        validation_error: str | None = None
-        usage = ModelUsage()
-        schema = decision_schema()
-        for number in range(1, self.max_repairs + 2):
-            projected, report = compact_with_report(
-                context,
-                self.backend,
-                schema,
-                prior_output=prior,
-                validation_error=validation_error,
-            )
-            prompt = decision_prompt(
-                projected, prior_output=prior, validation_error=validation_error
-            )
-            generated = self.backend.generate(prompt, schema)
-            input_tokens += generated.usage.input_tokens
-            output_tokens += generated.usage.output_tokens
-            latency_ms += generated.usage.latency_ms
-            usage = ModelUsage(
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                latency_ms=latency_ms,
-            )
-            digest = canonical_hash(generated.text)
-            try:
-                decision = CognitiveDecision.model_validate(
-                    parse_json_object(generated.text)
-                )
-            except (json.JSONDecodeError, ValidationError) as error:
-                validation_error = validation_error_text(error)
-                preview = generated.text[:512] if self.persist_invalid_output else None
-                attempts.append(
-                    ModelAttempt(
-                        attempt=number,
-                        output_hash=digest,
-                        valid=False,
-                        validation_error=validation_error,
-                        output_preview=preview,
-                    )
-                )
-                prior = generated.text
-                continue
-            attempts.append(
-                ModelAttempt(attempt=number, output_hash=digest, valid=True)
-            )
-            return ModelResponse(
-                decision=decision, usage=usage, attempts=tuple(attempts), prompt=report
-            )
-        raise StructuredOutputError(tuple(attempts), usage)
+        return run_generation(
+            self.backend,
+            context,
+            self.max_repairs,
+            persist_invalid_output=self.persist_invalid_output,
+            preview_chars=self.preview_chars,
+        )

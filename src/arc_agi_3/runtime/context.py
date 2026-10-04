@@ -12,7 +12,7 @@ from arc_agi_3.contracts.observation import Observation
 from arc_agi_3.recovery import reconstruct_recovery
 from arc_agi_3.trace.store import JsonlEventStore
 
-from .recent_events import event_view, recent_turn_events
+from .recent_events import current_observation_event_id, event_view, recent_turn_events
 from .working_set import epistemic_fields
 
 
@@ -27,6 +27,7 @@ def project_context(
     context_compaction: bool = True,
     raw_recent_turns: int = 2,
     episodic_retrieval_limit: int = 6,
+    compact_observation: bool = True,
 ) -> AgentContext:
     history = events.read()
     visible = [e for e in history if e.event_type not in HIDDEN_IN_CONTEXT]
@@ -83,5 +84,9 @@ def project_context(
         world_models=workspace.world_models.current if ablations.world_models else (),
         recovery_evidence=recovery if recovery and recent_window else None,
         context_stats=stats,
+        current_observation_event_id=current_observation_event_id(
+            history, observation.observation_hash
+        ),
+        compact_observation=compact_observation,
         **epistemic,
     )

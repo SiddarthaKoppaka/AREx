@@ -14,7 +14,7 @@ from arc_agi_3.recovery import BranchTracker
 from arc_agi_3.trace.checkpoints import CheckpointStore
 from arc_agi_3.trace.store import JsonlEventStore
 
-from .checkpointing import save_checkpoint
+from .checkpointing import checkpoint_event_payload, save_checkpoint
 from .context import project_context
 
 
@@ -72,6 +72,7 @@ class EpisodeIO:
             self.config.context_compaction,
             self.config.raw_recent_turns,
             self.config.episodic_retrieval_limit,
+            self.config.compact_observation,
         )
 
     def checkpoint(
@@ -95,6 +96,5 @@ class EpisodeIO:
             self.workspace.snapshot(),
             checkpoint_id,
         )
-        payload: dict[str, JsonValue] = {"checkpoint_id": checkpoint.checkpoint_id}
-        payload["checksum"] = checkpoint.checksum
+        payload = checkpoint_event_payload(checkpoint)
         self.append(EventType.CHECKPOINT, "checkpoint", step, payload, (cause,))

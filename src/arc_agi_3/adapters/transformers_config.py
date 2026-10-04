@@ -26,6 +26,7 @@ class TransformersConfig(Contract):
     trust_remote_code: bool = False
     revision: str = "main"
     quantization: QuantizationMode = "none"
+    gpu_memory_instrumentation: bool = False
 
     def metadata(self) -> dict[str, object]:
         keys = (
@@ -46,6 +47,7 @@ class TransformersConfig(Contract):
             "trust_remote_code",
             "revision",
             "quantization",
+            "gpu_memory_instrumentation",
         )
         return {"provider": "transformers", "model": self.model_name} | {
             key: getattr(self, key) for key in keys if key != "model_name"

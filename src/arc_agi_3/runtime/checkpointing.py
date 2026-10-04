@@ -42,3 +42,7 @@ def save_checkpoint(
     checkpoint = draft.model_copy(update={"checksum": digest})
     checkpoints.save(checkpoint)
     return checkpoint
+
+
+def checkpoint_event_payload(checkpoint: CheckpointRecord) -> dict[str, JsonValue]:
+    return {"checkpoint_id": checkpoint.checkpoint_id, "checksum": checkpoint.checksum}

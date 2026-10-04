@@ -88,7 +88,8 @@ class CognitiveSession:
         return self.pending.action
 
     def fail(self, error: Exception) -> RunResult:
-        record_failure(self.io, self.turn, error)
+        pending = self.pending is not None
+        record_failure(self.io, self.turn, error, action_pending=pending)
         return self.finish("failure")
 
     def finish(self, reason: str) -> RunResult:

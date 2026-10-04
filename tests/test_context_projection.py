@@ -32,7 +32,9 @@ def store(path: Path) -> JsonlEventStore:
     )
 
 
-def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> None:
+def test_current_frame_is_compact_by_default_and_history_is_compacted(
+    tmp_path: Path,
+) -> None:
     events = store(tmp_path / "events.jsonl")
     old, current = observation(2), observation(3)
     first = events.append(
@@ -44,7 +46,7 @@ def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> N
         1,
         {"action": {"action_id": 1}, "before_hash": old.observation_hash},
     )
-    events.append(
+    current_observed = events.append(
         EventType.OBSERVATION, "environment", 1, current.model_dump(mode="json")
     )
     context = project_context(
@@ -57,9 +59,10 @@ def test_current_frame_occurs_once_and_history_is_compacted(tmp_path: Path) -> N
     )
     prompt = decision_prompt(context)
     assert '"frame":' not in prompt
-    assert '"encoding":"row_rle_v1"' in prompt
-    assert "[[3,64]]" in prompt
+    assert '"encoding":"row_rle_v1"' not in prompt
     assert '"frame":[[[2' not in prompt
+    assert '"dimensions"' in prompt
+    assert context.current_observation_event_id == current_observed.event_id
     assert context.recent_events[0].payload["observation_hash"] == old.observation_hash
     assert context.recent_events[1].payload["action"] == {"action_id": 1}
     assert context.recent_event_refs[0] == first.event_id

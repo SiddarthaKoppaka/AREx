@@ -48,4 +48,10 @@ PUBLIC_FIELDS = (
     "matches_planned_next_test",
     "context",
     "prompt",
+    "role",
+    "error_category",
+    "error_categories",
+    "environment_action_pending",
+    "checkpoint_available",
+    "last_decision_event_id",
 )

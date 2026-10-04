@@ -44,3 +44,5 @@ class AgentContext(Contract):
     unresolved_contradictions: tuple[str, ...] = ()
     action_evidence: tuple[ActionEvidence, ...] = ()
     context_stats: ContextStats | None = None
+    current_observation_event_id: str | None = None
+    compact_observation: bool = True

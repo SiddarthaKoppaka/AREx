@@ -4,6 +4,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from .transformers_limits import InputTokenLimitError
+
 
 @dataclass(frozen=True)
 class ContextLimits:
@@ -37,3 +39,16 @@ def resolve_limits(backend: object) -> ContextLimits | None:
     ):
         return None
     return ContextLimits(counter, pressure, target, hard)
+
+
+def guard_prompt_tokens(
+    backend: object, schema: dict[str, Any], prompt: str, *, context: str
+) -> None:
+    """Fail cheaply before generation if even a small repair prompt is oversized."""
+    limits = resolve_limits(backend)
+    if limits is None:
+        return
+    tokens = limits.counter(prompt, schema)
+    if tokens > limits.hard:
+        model = str(getattr(getattr(backend, "config", None), "model_name", "unknown"))
+        raise InputTokenLimitError(tokens, limits.hard, model, context)

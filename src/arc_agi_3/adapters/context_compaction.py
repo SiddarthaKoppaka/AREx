@@ -1,4 +1,8 @@
-"""Token-aware pruning of optional context before structured generation."""
+"""Token-aware pruning of optional context before the primary cognitive generation.
+
+Only wraps the primary attempt: repair prompts are already small and never
+carry an `AgentContext`, so they never need this pass.
+"""
 
 from typing import Any
 
@@ -10,22 +14,14 @@ from .transformers_limits import InputTokenLimitError
 
 
 def compact_with_report(
-    context: AgentContext,
-    backend: object,
-    schema: dict[str, Any],
-    *,
-    prior_output: str | None = None,
-    validation_error: str | None = None,
+    context: AgentContext, backend: object, schema: dict[str, Any]
 ) -> tuple[AgentContext, PromptReport | None]:
     limits = resolve_limits(backend)
     if limits is None:
         return context, None
 
     def tokens(value: AgentContext) -> int:
-        prompt = decision_prompt(
-            value, prior_output=prior_output, validation_error=validation_error
-        )
-        return int(limits.counter(prompt, schema))
+        return int(limits.counter(decision_prompt(value), schema))
 
     def finish(value: AgentContext, after: int) -> tuple[AgentContext, PromptReport]:
         memory = value.episodic_memory
@@ -84,17 +80,6 @@ def compact_with_report(
 
 
 def compact_for_backend(
-    context: AgentContext,
-    backend: object,
-    schema: dict[str, Any],
-    *,
-    prior_output: str | None = None,
-    validation_error: str | None = None,
+    context: AgentContext, backend: object, schema: dict[str, Any]
 ) -> AgentContext:
-    return compact_with_report(
-        context,
-        backend,
-        schema,
-        prior_output=prior_output,
-        validation_error=validation_error,
-    )[0]
+    return compact_with_report(context, backend, schema)[0]

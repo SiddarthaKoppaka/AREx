@@ -44,7 +44,7 @@ def test_current_scene_uses_lossless_rle_when_smaller() -> None:
         win_levels=1,
         available_actions=[1, 6],
     )
-    projected = observation_view(observation)
+    projected = observation_view(observation, include_raw_frame=True)
     frame_view = projected["frame_view"]
     assert isinstance(frame_view, dict)
     assert frame_view["encoding"] == "row_rle_v1"
