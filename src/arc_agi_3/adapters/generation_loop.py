@@ -24,7 +24,7 @@ from .context_compaction import compact_with_report
 from .context_limits import guard_prompt_tokens
 from .decision_schema import decision_schema
 from .generation_attempts import accumulate, record_attempt
-from .generation_errors import GenerationBackendError, classify
+from .generation_errors import GenerationBackendError, ToolContractError, classify
 from .inference import InferenceBackend
 from .prompts import decision_prompt
 from .repair_prompt import build_repair_prompt
@@ -33,6 +33,7 @@ from .structured_output import (
     parse_json_object,
     validation_error_text,
 )
+from .tool_contract_check import check_tool_requests
 
 
 def run_generation(
@@ -76,7 +77,8 @@ def run_generation(
             decision = CognitiveDecision.model_validate(
                 parse_json_object(generated.text)
             )
-        except (json.JSONDecodeError, ValidationError) as error:
+            check_tool_requests(decision)
+        except (json.JSONDecodeError, ValidationError, ToolContractError) as error:
             category = classify(error, generated.text)
             error_text, malformed = validation_error_text(error), generated.text
             attempts.append(record(number, generated.text, category, error_text, False))

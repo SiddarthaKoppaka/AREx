@@ -2,28 +2,15 @@
 
 from typing import Literal
 
-from pydantic import Field, JsonValue
+from pydantic import JsonValue
 
 from arc_agi_3.ablations import require_capability
-from arc_agi_3.contracts.base import Contract
+from arc_agi_3.contracts.artifacts import ArchiveArtifactRequest, ReadArtifactRequest
 from arc_agi_3.contracts.cognition import ToolRequest, ToolResult
 from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.trace.canonical import canonical_json
 
 from .io import EpisodeIO
-
-
-class ArchiveArtifactRequest(Contract):
-    purpose: str = Field(min_length=1, max_length=512)
-    evidence_refs: tuple[str, ...] = Field(min_length=1, max_length=20)
-    content: dict[str, JsonValue]
-
-
-class ReadArtifactRequest(Contract):
-    artifact_ref: str
-    purpose: str = Field(min_length=1, max_length=240)
-    token_budget: int = Field(ge=128, le=65536)
-    keys: tuple[str, ...] = ()
 
 
 def archive_artifact(

@@ -60,11 +60,13 @@ class TokenCounter:
     """A backend fake that counts prompt characters as tokens, for compaction tests."""
 
     def __init__(self, target: int, *, pressure: int = 1) -> None:
+        # The margin above target must clear the fixed TOOL_CONTRACTS schema
+        # block, which is not itself compactable (it never changes per turn).
         self.config = SimpleNamespace(
             compaction_pressure_start=pressure,
             active_context_target=target,
-            max_input_tokens=target + 10_000,
-            max_context_tokens=target + 10_128,
+            max_input_tokens=target + 18_000,
+            max_context_tokens=target + 18_128,
             max_new_tokens=64,
             template_and_generation_margin=64,
             model_name="test",

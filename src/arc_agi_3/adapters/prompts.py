@@ -13,6 +13,7 @@ from .observation_projection import observation_view
 from .prompt_render import render
 from .prompt_text import CONTRACT, EPISTEMICS, TOOLS
 from .task_projection import task_prompt_view
+from .tool_schemas import tool_schemas
 
 
 def _sections(context: AgentContext) -> tuple[tuple[str, Any], ...]:
@@ -60,4 +61,5 @@ def _sections(context: AgentContext) -> tuple[tuple[str, Any], ...]:
 
 def decision_prompt(context: AgentContext) -> str:
     body = "\n".join(f"{name}:\n{render(value)}" for name, value in _sections(context))
-    return CONTRACT + EPISTEMICS + TOOLS + "CONTEXT:\n" + body
+    contracts = f"TOOL_CONTRACTS:\n{render(tool_schemas())}\n"
+    return CONTRACT + EPISTEMICS + TOOLS + contracts + "CONTEXT:\n" + body
