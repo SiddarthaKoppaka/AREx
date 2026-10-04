@@ -9,5 +9,6 @@ ErrorCategory = Literal[
     "malformed_json",
     "schema_validation",
     "logical_contract",
+    "tool_contract_violation",
     "unknown_backend_failure",
 ]

@@ -28,6 +28,11 @@ CATEGORY_INSTRUCTIONS: dict[ErrorCategory, str] = {
         "The object is valid JSON but violates a cross-field rule (see "
         "ERROR_DETAIL). Adjust only the fields the rule names."
     ),
+    "tool_contract_violation": (
+        "A tool_requests entry does not match that tool's argument schema "
+        "(see ERROR_DETAIL for the exact tool and fields; the schema is in "
+        "TOOL_CONTRACTS). Repair only that entry's arguments."
+    ),
     "unknown_backend_failure": (
         "The previous generation failed before producing output. Return a "
         "minimal valid CognitiveDecision consistent with your prior intent."
@@ -45,7 +50,13 @@ def is_logical_contract_error(error: ValidationError) -> bool:
     return bool(errors) and all(item["type"] == "value_error" for item in errors)
 
 
+class ToolContractError(ValueError):
+    """A tool_requests entry does not match its registered argument contract."""
+
+
 def classify(error: Exception, text: str) -> ErrorCategory:
+    if isinstance(error, ToolContractError):
+        return "tool_contract_violation"
     if isinstance(error, json.JSONDecodeError):
         return "malformed_json" if has_json_candidate(text) else "no_json_found"
     if isinstance(error, ValidationError):

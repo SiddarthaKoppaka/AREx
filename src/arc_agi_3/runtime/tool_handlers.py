@@ -1,11 +1,9 @@
 """Implement deterministic tool capabilities selected by the LM."""
 
 from arc_agi_3.ablations import require_capability
-from arc_agi_3.context import EventRetriever
 from arc_agi_3.contracts.cognition import ToolRequest, ToolResult
 from arc_agi_3.contracts.enums import Resource
 from arc_agi_3.contracts.events import EventEnvelope
-from arc_agi_3.contracts.retrieval import RetrievalQuery
 from arc_agi_3.exploration import ExplorationRequest, evaluate_exploration
 from arc_agi_3.exploration.contracts import ExplorationOutcome
 from arc_agi_3.planning import SearchRequest, run_search
@@ -13,7 +11,11 @@ from arc_agi_3.world_model import SimulationRequest, WorldModelRuntime
 
 from .artifact_tools import archive_artifact, retrieve_artifact
 from .epistemic_tools import retrodiction_tool
-from .evidence_tools import evidence_tool
+from .evidence_tools import (
+    evidence_tool,
+    inspect_frame_region_tool,
+    retrieve_events_tool,
+)
 from .io import EpisodeIO
 
 
@@ -24,20 +26,14 @@ def execute_tool(
         return archive_artifact(io, request, requested)
     if request.tool_name == "retrieve_artifact":
         return retrieve_artifact(io, request)
-    if request.tool_name in {"retrieve_evidence", "inspect_frame_region"}:
+    if request.tool_name == "retrieve_evidence":
         return evidence_tool(io, request)
+    if request.tool_name == "inspect_frame_region":
+        return inspect_frame_region_tool(io, request)
     if request.tool_name == "check_prediction_history":
         return retrodiction_tool(io, request)
     if request.tool_name == "retrieve_events":
-        require_capability(io.config.ablations.selective_retrieval, "retrieval")
-        query = RetrievalQuery.model_validate(request.arguments)
-        retrieved = EventRetriever(io.events.read()).retrieve(query)
-        return ToolResult(
-            request_id=request.request_id,
-            status="complete",
-            output={"retrieval": retrieved.model_dump(mode="json")},
-            evidence_refs=tuple(item.event_id for item in retrieved.matches),
-        )
+        return retrieve_events_tool(io, request)
     if request.tool_name == "simulate_world_model":
         require_capability(io.config.ablations.world_models, "world_models")
         simulation = SimulationRequest.model_validate(request.arguments)

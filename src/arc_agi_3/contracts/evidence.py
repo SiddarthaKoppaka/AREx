@@ -31,3 +31,28 @@ class EvidenceQuery(Contract):
         if (self.view == "region") != (self.region is not None):
             raise ValueError("region coordinates are required only for region view")
         return self
+
+
+class FrameRegionRequest(Contract):
+    """The dedicated, non-ambiguous contract for the inspect_frame_region tool.
+
+    Deliberately not EvidenceQuery: that generic contract's nested `region`
+    (layer/x/y/width/height) was being reused for this tool via a forced
+    `view="region"`, which the model had no way to discover and tried to
+    reverse-engineer from validation errors across several turns.
+    """
+
+    event_id: str = Field(min_length=1)
+    purpose: str = Field(min_length=1, max_length=240)
+    token_budget: int = Field(ge=128, le=65536)
+    layer: int = Field(default=0, ge=0)
+    min_row: int = Field(ge=0)
+    max_row: int = Field(ge=0)
+    min_col: int = Field(ge=0)
+    max_col: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def ordered_bounds(self) -> "FrameRegionRequest":
+        if self.max_row < self.min_row or self.max_col < self.min_col:
+            raise ValueError("max_row/max_col must not be less than min_row/min_col")
+        return self

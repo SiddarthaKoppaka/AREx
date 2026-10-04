@@ -9,6 +9,7 @@ from arc_agi_3.contracts.evidence import EvidenceQuery
 from arc_agi_3.contracts.observation import Frame
 
 from .frame_delta import transition_delta
+from .frame_region import crop_region
 from .frame_views import frame_summary, rle_frame
 
 _FRAME = TypeAdapter(Frame)
@@ -59,22 +60,14 @@ def _region(frame: object, query: EvidenceQuery) -> dict[str, object]:
     if not isinstance(frame, list) or query.region is None:
         raise ValueError("requested event has no frame")
     region = query.region
-    if region.layer >= len(frame):
-        raise ValueError("region layer is outside the frame")
-    layer = frame[region.layer]
-    if region.y + region.height > len(layer) or any(
-        region.x + region.width > len(row)
-        for row in layer[region.y : region.y + region.height]
-    ):
-        raise ValueError("region is outside the frame")
+    cells = crop_region(
+        frame, region.layer, region.x, region.y, region.width, region.height
+    )
     return {
         "layer": region.layer,
         "x": region.x,
         "y": region.y,
         "width": region.width,
         "height": region.height,
-        "cells": [
-            row[region.x : region.x + region.width]
-            for row in layer[region.y : region.y + region.height]
-        ],
+        "cells": cells,
     }
