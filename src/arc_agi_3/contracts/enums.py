@@ -2,6 +2,8 @@
 
 from enum import StrEnum
 
+from .student_role import StudentRole as StudentRole
+
 
 class EnvironmentState(StrEnum):
     NOT_PLAYED = "NOT_PLAYED"
@@ -53,6 +55,9 @@ class EventType(StrEnum):
     TRANSITION = "transition"
     VERIFICATION = "verification"
     EXPERIMENT = "experiment"
+    STUDENT_REPORT = "student_report"
+    PEER_REVIEW = "peer_review"
+    CLASSROOM_SYNTHESIS = "classroom_synthesis"
     CHECKPOINT = "checkpoint"
     FAILURE = "failure"
     RUN_FINISHED = "run_finished"

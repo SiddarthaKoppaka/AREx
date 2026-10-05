@@ -2,6 +2,7 @@
 
 from arc_agi_3.contracts.enums import EventType, ExecutionStatus, Resource
 from arc_agi_3.contracts.events import EventEnvelope
+from arc_agi_3.evaluation_classroom import classroom_counts
 from arc_agi_3.evaluation_epistemic import epistemic_counts
 from arc_agi_3.evaluation_generation import generation_counts
 
@@ -48,6 +49,7 @@ def event_research_counts(events: list[EventEnvelope]) -> dict[str, int | float]
         "world_model_versions": _world_model_versions(events),
         **epistemic_counts(events),
         **generation_counts(events),
+        **classroom_counts(events),
     }
 
 

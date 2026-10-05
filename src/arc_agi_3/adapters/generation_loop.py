@@ -1,38 +1,25 @@
-"""The bounded primary-plus-repair generation loop.
+"""Teacher/CognitiveDecision generation: the thin, context-aware caller.
 
-Only attempt 1 ("primary") sees the working set. Every repair attempt uses
-`build_repair_prompt` instead: just the malformed text, the schema, and why
-it failed. `max_repairs` is enforced by the caller, so one bad parse costs
-at most `max_repairs + 1` backend generations, never dozens.
+The bounded primary-plus-repair engine itself lives in
+`structured_generation.run_structured` and is shared with Students and
+peer reviews (`classroom_adapter`). This module only supplies what is
+specific to a CognitiveDecision: context compaction for the primary
+prompt, and the tool-contract check as `validate_extra`.
 """
-
-import json
-from functools import partial
-
-from pydantic import ValidationError
 
 from arc_agi_3.contracts.decision import (
     AgentContext,
     CognitiveDecision,
-    ModelAttempt,
     ModelResponse,
-    ModelUsage,
+    PromptReport,
 )
-from arc_agi_3.contracts.generation import ErrorCategory
 
 from .context_compaction import compact_with_report
-from .context_limits import guard_prompt_tokens
 from .decision_schema import decision_schema
-from .generation_attempts import accumulate, record_attempt
-from .generation_errors import GenerationBackendError, ToolContractError, classify
 from .inference import InferenceBackend
 from .prompts import decision_prompt
-from .repair_prompt import build_repair_prompt
-from .structured_output import (
-    StructuredOutputError,
-    parse_json_object,
-    validation_error_text,
-)
+from .structured_generation import run_structured
+from .structured_output import StructuredOutputError as StructuredOutputError
 from .tool_contract_check import check_tool_requests
 
 
@@ -44,49 +31,23 @@ def run_generation(
     persist_invalid_output: bool,
     preview_chars: int,
 ) -> ModelResponse:
-    attempts: list[ModelAttempt] = []
-    totals = ModelUsage()
-    malformed = error_text = ""
-    category: ErrorCategory = "unknown_backend_failure"
     schema = decision_schema()
-    record = partial(
-        record_attempt,
+
+    def primary() -> tuple[str, PromptReport | None]:
+        projected, report = compact_with_report(context, backend, schema)
+        return decision_prompt(projected), report
+
+    decision, usage, attempts, report = run_structured(
+        backend,
+        schema,
+        CognitiveDecision,
+        primary,
+        max_repairs,
         persist_invalid_output=persist_invalid_output,
         preview_chars=preview_chars,
+        turn=context.turn,
+        validate_extra=check_tool_requests,
     )
-    report = None
-    for number in range(1, max_repairs + 2):
-        if number == 1:
-            projected, report = compact_with_report(context, backend, schema)
-            prompt = decision_prompt(projected)
-        else:
-            prompt = build_repair_prompt(category, error_text, malformed)
-            guard_prompt_tokens(
-                backend, schema, prompt, context=f"turn={context.turn};repair"
-            )
-        try:
-            generated = backend.generate(prompt, schema)
-        except GenerationBackendError as error:
-            totals = accumulate(totals, error.usage)
-            category = "unknown_backend_failure"
-            error_text, malformed = str(error), ""
-            attempts.append(record(number, "", category, error_text, False))
-            continue
-        totals = accumulate(totals, generated.usage)
-        try:
-            decision = CognitiveDecision.model_validate(
-                parse_json_object(generated.text)
-            )
-            check_tool_requests(decision)
-        except (json.JSONDecodeError, ValidationError, ToolContractError) as error:
-            category = classify(error, generated.text)
-            error_text, malformed = validation_error_text(error), generated.text
-            attempts.append(record(number, generated.text, category, error_text, False))
-            continue
-        attempts.append(
-            record(number, generated.text, None, None, True, generated.usage)
-        )
-        return ModelResponse(
-            decision=decision, usage=totals, attempts=tuple(attempts), prompt=report
-        )
-    raise StructuredOutputError(tuple(attempts), totals)
+    return ModelResponse(
+        decision=decision, usage=usage, attempts=attempts, prompt=report
+    )
