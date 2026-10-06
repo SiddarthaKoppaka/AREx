@@ -6,13 +6,13 @@ from datetime import datetime
 from arc_agi_3.adapters.inference import InferenceBackend
 from arc_agi_3.adapters.protocols import EnvironmentAdapter, ModelAdapter
 from arc_agi_3.budgets import BudgetLedger
-from arc_agi_3.classroom_config import ClassroomConfig
 from arc_agi_3.config import RunConfig
+from arc_agi_3.exocortex_config import ExoCortexConfig
 from arc_agi_3.manifest import RunManifest, build_manifest, write_manifest
 from arc_agi_3.trace.checkpoints import CheckpointStore
 from arc_agi_3.trace.store import JsonlEventStore
 
-from .classroom_adapter import ClassroomModelAdapter
+from .exocortex import ExoCortex, model_metadata
 from .io import EpisodeIO
 from .reporting import LiveReporter
 from .runner import EpisodeRunner
@@ -24,7 +24,7 @@ def build_session(
     environment: EnvironmentAdapter,
     model: ModelAdapter,
     *,
-    students: InferenceBackend | None = None,
+    specialist_backend: InferenceBackend | None = None,
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
     manifest: RunManifest | None = None,
@@ -43,23 +43,22 @@ def build_session(
         id_factory=id_factory,
         observers=(reporter.on_event,) if reporter else (),
     )
+    exocortex = None
+    if specialist_backend is not None:
+        exocortex = ExoCortex(specialist_backend, config.exocortex or ExoCortexConfig())
     io = EpisodeIO(
         config,
         environment,
         events,
         CheckpointStore(run_dir / "checkpoints"),
         BudgetLedger(config.budget.limits),
+        exocortex,
     )
-    effective_model: ModelAdapter = model
-    if students is not None:
-        effective_model = ClassroomModelAdapter(
-            io, model, students, config.classroom or ClassroomConfig()
-        )
     resolved_manifest = manifest or build_manifest(
-        config, effective_model.metadata, environment.metadata
+        config, model_metadata(model, exocortex), environment.metadata
     )
     write_manifest(run_dir / "manifest.json", resolved_manifest)
-    return CognitiveSession(io, effective_model, resolved_manifest)
+    return CognitiveSession(io, model, resolved_manifest)
 
 
 def build_runner(
@@ -67,7 +66,7 @@ def build_runner(
     environment: EnvironmentAdapter,
     model: ModelAdapter,
     *,
-    students: InferenceBackend | None = None,
+    specialist_backend: InferenceBackend | None = None,
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
     manifest: RunManifest | None = None,
@@ -78,7 +77,7 @@ def build_runner(
         config,
         environment,
         model,
-        students=students,
+        specialist_backend=specialist_backend,
         clock=clock,
         id_factory=id_factory,
         manifest=manifest,

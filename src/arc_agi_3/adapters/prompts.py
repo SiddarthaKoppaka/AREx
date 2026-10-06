@@ -47,7 +47,7 @@ def _sections(context: AgentContext) -> tuple[tuple[str, Any], ...]:
         ("MODEL_AUTHORED_WORLD_MODELS", context.world_models),
         ("RECENT_TURNS", context.recent_events),
         ("RELEVANT_EPISODES", episode_prompt_view(context.episodic_memory)),
-        ("CLASSROOM", context.classroom),
+        ("COGNITIVE_SYNTHESIS", context.cognitive_synthesis),
         (
             "OTHER_CONTEXT",
             {

@@ -46,3 +46,9 @@ def save_checkpoint(
 
 def checkpoint_event_payload(checkpoint: CheckpointRecord) -> dict[str, JsonValue]:
     return {"checkpoint_id": checkpoint.checkpoint_id, "checksum": checkpoint.checksum}
+
+
+def checkpoint_id_for(step_id: int, suffix: int | None) -> str | None:
+    if suffix is None:
+        return None
+    return f"checkpoint-{step_id:06d}-{suffix:03d}"

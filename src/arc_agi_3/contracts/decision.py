@@ -6,7 +6,7 @@ from arc_agi_3.world_model.contracts import WorldModel
 
 from . import cognition
 from .base import Contract
-from .classroom_synthesis import ClassroomSynthesis
+from .cognitive_synthesis import CognitiveSynthesis
 from .decision_core import BudgetRequest as BudgetRequest
 from .decision_core import CognitiveDecision as CognitiveDecision
 from .decision_core import PublicSummary as PublicSummary
@@ -47,4 +47,4 @@ class AgentContext(Contract):
     context_stats: ContextStats | None = None
     current_observation_event_id: str | None = None
     compact_observation: bool = True
-    classroom: ClassroomSynthesis | None = None
+    cognitive_synthesis: CognitiveSynthesis | None = None

@@ -1,9 +1,9 @@
-"""Advisory, non-authoritative cognition from Student models.
+"""Advisory, non-authoritative cognition from a specialist faculty.
 
-A StudentReport never crosses the agency boundary: it cannot execute an
+A SpecialistReport never crosses the agency boundary: it cannot execute an
 action, mutate BeliefStore/TaskGraph/ScratchpadStore, or authorize a
-side-effecting tool. Only the Teacher's CognitiveDecision does that — this
-is input to the Teacher's own prompt, nothing more. See ADR-0008.
+side-effecting tool. Only the core agent's CognitiveDecision does that —
+this is evidence the core agent may consult, nothing more. See ADR-0009.
 """
 
 from pydantic import Field
@@ -11,7 +11,7 @@ from pydantic import Field
 from arc_agi_3.world_model.contracts import WorldModel
 
 from .base import Contract
-from .enums import StudentRole
+from .cognitive_faculty import CognitiveFaculty
 from .observation import Action
 from .prediction import ExpectedOutcome, Experiment
 
@@ -48,9 +48,9 @@ class ActionProposal(Contract):
     expected_outcome: ExpectedOutcome | None = None
 
 
-class StudentReport(Contract):
-    student_id: str = Field(min_length=1)
-    role: StudentRole
+class SpecialistReport(Contract):
+    specialist_id: str = Field(min_length=1)
+    faculty: CognitiveFaculty
     turn: int = Field(ge=0)
     assessment: str = Field(min_length=1, max_length=512)
     evidence_refs: tuple[str, ...] = ()

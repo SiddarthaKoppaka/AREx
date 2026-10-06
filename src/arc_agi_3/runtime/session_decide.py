@@ -62,7 +62,7 @@ def decide_until_action(
                     turn, observation, observed, stop_reason=recovered.stop_reason
                 )
             continue
-        apply_cognitive_decision(io, decision, choice, turn)
+        apply_cognitive_decision(io, decision, choice, turn, observation)
         if choice.mode is DecisionMode.STOP:
             return DecisionOutcome(
                 turn, observation, observed, stop_reason="agent_stop"

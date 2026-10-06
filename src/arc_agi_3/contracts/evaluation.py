@@ -44,10 +44,9 @@ class EvaluationMetrics(Contract):
     structured_output_failures: int = Field(default=0, ge=0)
     repair_prompt_tokens: int = Field(default=0, ge=0)
     avg_backend_generations_per_decision: float = Field(default=0.0, ge=0)
-    student_reports_generated: int = Field(default=0, ge=0)
-    peer_reviews_generated: int = Field(default=0, ge=0)
-    classroom_rounds: int = Field(default=0, ge=0)
-    classroom_backend_generations: int = Field(default=0, ge=0)
+    specialist_reports_generated: int = Field(default=0, ge=0)
+    specialist_reviews_generated: int = Field(default=0, ge=0)
+    exocortex_backend_generations: int = Field(default=0, ge=0)
     flagged_contradictions_raised: int = Field(default=0, ge=0)
     rhae_level_scores: tuple[float, ...] = ()
     rhae_environment_score: float | None = None
