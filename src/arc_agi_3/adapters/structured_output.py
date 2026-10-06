@@ -35,8 +35,13 @@ def parse_json_object(text: str) -> dict[str, object]:
 
 
 class StructuredOutputError(RuntimeError):
-    def __init__(self, attempts: tuple[ModelAttempt, ...], usage: ModelUsage) -> None:
-        super().__init__("model did not produce a valid CognitiveDecision")
+    def __init__(
+        self,
+        attempts: tuple[ModelAttempt, ...],
+        usage: ModelUsage,
+        output_type: str = "CognitiveDecision",
+    ) -> None:
+        super().__init__(f"model did not produce a valid {output_type}")
         self.usage = usage
         self.trace_payload: dict[str, JsonValue] = {
             "attempts": [

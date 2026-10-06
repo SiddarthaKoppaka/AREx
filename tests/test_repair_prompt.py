@@ -11,7 +11,12 @@ VALID = successful_script()[0].model_dump_json()
 
 def test_repair_prompt_excludes_frame_and_working_history() -> None:
     malformed = '{"frame": [[1,2,3]], "mode": "execute"'
-    prompt = build_repair_prompt("malformed_json", "unexpected end of input", malformed)
+    prompt = build_repair_prompt(
+        "malformed_json",
+        "unexpected end of input",
+        malformed,
+        target_type="CognitiveDecision",
+    )
     assert "CURRENT_OBSERVATION" not in prompt
     assert "WORKING_SCRATCHPAD" not in prompt
     assert "RECENT_TURNS" not in prompt
@@ -23,23 +28,40 @@ def test_repair_prompt_is_small_relative_to_a_cognitive_prompt() -> None:
     from arc_agi_3.adapters.prompts import decision_prompt
 
     cognitive = decision_prompt(context())
-    repair = build_repair_prompt("no_json_found", "No valid JSON object", "prose only")
+    repair = build_repair_prompt(
+        "no_json_found",
+        "No valid JSON object",
+        "prose only",
+        target_type="CognitiveDecision",
+    )
     assert len(repair) < len(cognitive)
     assert len(repair) < 2000
 
 
 def test_repair_prompt_echoes_malformed_output_to_preserve_intent() -> None:
     malformed = '{"assessment": "advance toward the target", "mode": "execute"'
-    prompt = build_repair_prompt("malformed_json", "err", malformed)
+    prompt = build_repair_prompt(
+        "malformed_json", "err", malformed, target_type="CognitiveDecision"
+    )
     assert "advance toward the target" in prompt
     assert "Preserve the original semantic intent" in prompt
 
 
 def test_oversized_malformed_output_is_truncated_not_unbounded() -> None:
     huge = "x" * 10_000
-    prompt = build_repair_prompt("malformed_json", "err", huge)
+    prompt = build_repair_prompt(
+        "malformed_json", "err", huge, target_type="CognitiveDecision"
+    )
     assert len(prompt) < 5_000
     assert "[truncated for repair]" in prompt
+
+
+def test_repair_prompt_names_the_actual_target_type_not_cognitive_decision() -> None:
+    prompt = build_repair_prompt(
+        "malformed_json", "err", "{bad", target_type="StudentReport"
+    )
+    assert "Repair this output into a valid StudentReport." in prompt
+    assert "CognitiveDecision" not in prompt
 
 
 def test_the_live_repair_call_never_carries_the_full_context() -> None:

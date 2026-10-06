@@ -13,7 +13,7 @@ from arc_agi_3.contracts.generation import ErrorCategory
 
 CATEGORY_INSTRUCTIONS: dict[ErrorCategory, str] = {
     "no_json_found": (
-        "Return ONLY one valid JSON object matching CognitiveDecision. Do not "
+        "Return ONLY one valid JSON object matching the schema below. Do not "
         "include analysis, markdown, or prose."
     ),
     "malformed_json": (
@@ -35,7 +35,8 @@ CATEGORY_INSTRUCTIONS: dict[ErrorCategory, str] = {
     ),
     "unknown_backend_failure": (
         "The previous generation failed before producing output. Return a "
-        "minimal valid CognitiveDecision consistent with your prior intent."
+        "minimal valid object, matching the schema below, consistent with "
+        "your prior intent."
     ),
 }
 
