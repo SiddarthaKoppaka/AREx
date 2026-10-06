@@ -39,6 +39,10 @@ def test_malformed_student_output_is_repaired_the_same_cheap_way() -> None:
     assert attempts[0].error_category == "no_json_found"
     assert "CURRENT_OBSERVATION" not in backend.prompts[1]
     assert usage.input_tokens == 4
+    assert "StudentReport" in backend.prompts[1] and "CognitiveDecision" not in (
+        backend.prompts[1]
+    )
+    assert attempts[0].generation_input_tokens == backend.usage.input_tokens
 
 
 def test_two_students_from_the_same_context_never_see_each_other() -> None:
@@ -106,4 +110,7 @@ def test_peer_review_reuses_the_same_engine_and_sees_only_peers() -> None:
     assert (
         "peer" in backend.prompts[0]
         and "mine" not in backend.prompts[0].split("PEER_REPORTS")[1]
+    )
+    assert "PeerReview" in backend.prompts[1] and "CognitiveDecision" not in (
+        backend.prompts[1]
     )

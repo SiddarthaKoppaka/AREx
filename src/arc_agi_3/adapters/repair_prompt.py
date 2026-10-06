@@ -14,7 +14,7 @@ from .generation_errors import CATEGORY_INSTRUCTIONS
 MAX_MALFORMED_ECHO = 4000
 
 _BASE = (
-    "Repair this output into a valid CognitiveDecision. Preserve the original "
+    "Repair this output into a valid {target_type}. Preserve the original "
     "semantic intent. Do not reconsider the environment. Do not add new "
     "strategy. Return only the repaired JSON object matching the schema "
     "below, with no markdown or commentary.\n"
@@ -28,10 +28,14 @@ def _echo(malformed_output: str) -> str:
 
 
 def build_repair_prompt(
-    category: ErrorCategory, error_text: str, malformed_output: str
+    category: ErrorCategory,
+    error_text: str,
+    malformed_output: str,
+    *,
+    target_type: str,
 ) -> str:
     return (
-        _BASE
+        _BASE.format(target_type=target_type)
         + CATEGORY_INSTRUCTIONS[category]
         + f"\nERROR_CATEGORY: {category}\nERROR_DETAIL:\n{error_text}\n"
         "MALFORMED_OUTPUT:\n" + _echo(malformed_output)

@@ -75,3 +75,16 @@ def test_output_hashes_are_preserved_across_attempts() -> None:
     response = StructuredModelAdapter(backend).decide(context())
     assert response.attempts[0].output_hash == canonical_hash("not json")
     assert response.attempts[1].output_hash == canonical_hash(VALID)
+
+
+def test_structured_output_error_names_the_actual_target_type() -> None:
+    backend = ScriptedBackend(["x", "y", "z"])
+    with pytest.raises(StructuredOutputError, match="CognitiveDecision"):
+        StructuredModelAdapter(backend, max_repairs=2).decide(context())
+
+
+def test_failed_attempts_preserve_generation_token_usage() -> None:
+    backend = ScriptedBackend(["not json", VALID])
+    response = StructuredModelAdapter(backend).decide(context())
+    assert response.attempts[0].generation_input_tokens == backend.usage.input_tokens
+    assert response.attempts[0].generation_output_tokens == backend.usage.output_tokens

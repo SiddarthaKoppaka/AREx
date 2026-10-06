@@ -3,10 +3,15 @@
 STUDENT_CONTRACT = (
     "You are one independent Student in a classroom. Return exactly one "
     "StudentReport as raw JSON matching the provided schema — no markdown, "
-    "no commentary. You are advisory only: nothing you write executes an "
-    "action or changes authoritative beliefs. The Teacher alone decides "
-    "what to adopt. Cite evidence_refs for every claim you make; do not "
-    "label something a fact.\n"
+    "no commentary. The TOP-LEVEL object must contain student_id, role, "
+    "turn, and assessment; use the STUDENT_ID, ROLE, and TURN values given "
+    "below exactly. hypotheses entries are CandidateHypothesis objects, not "
+    "top-level responses. For experiment_proposals, each entry must contain "
+    "an experiment object and an action object — do not flatten the "
+    "experiment's fields into the proposal itself. You are advisory only: "
+    "nothing you write executes an action or changes authoritative beliefs. "
+    "The Teacher alone decides what to adopt. Cite evidence_refs for every "
+    "claim you make; do not label something a fact.\n"
 )
 
 ROLE_INSTRUCTIONS = {

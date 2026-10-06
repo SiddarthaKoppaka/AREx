@@ -56,14 +56,18 @@ def run_structured[T: BaseModel](
         if number == 1:
             prompt, report = primary()
         else:
-            prompt = build_repair_prompt(category, error_text, malformed)
+            prompt = build_repair_prompt(
+                category, error_text, malformed, target_type=output_model.__name__
+            )
             guard_prompt_tokens(backend, schema, prompt, context=f"turn={turn};repair")
         try:
             generated = backend.generate(prompt, schema)
         except GenerationBackendError as error:
             totals = accumulate(totals, error.usage)
             category, error_text, malformed = "unknown_backend_failure", str(error), ""
-            attempts.append(record(number, "", category, error_text, False))
+            attempts.append(
+                record(number, "", category, error_text, False, error.usage)
+            )
             continue
         totals = accumulate(totals, generated.usage)
         try:
@@ -73,10 +77,15 @@ def run_structured[T: BaseModel](
         except (json.JSONDecodeError, ValidationError, ValueError) as error:
             category = classify(error, generated.text)
             error_text, malformed = validation_error_text(error), generated.text
-            attempts.append(record(number, generated.text, category, error_text, False))
+            attempts.append(
+                record(
+                    number, generated.text, category, error_text, False,
+                    generated.usage,
+                )
+            )
             continue
         attempts.append(
             record(number, generated.text, None, None, True, generated.usage)
         )
         return parsed, totals, tuple(attempts), report
-    raise StructuredOutputError(tuple(attempts), totals)
+    raise StructuredOutputError(tuple(attempts), totals, output_model.__name__)
