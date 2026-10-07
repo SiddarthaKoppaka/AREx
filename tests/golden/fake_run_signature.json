@@ -19,7 +19,7 @@
     "ca7780c9a98ef4438b62f7bd9eef376337a099f2714e3071c7a6c3e18b1f3d9b",
     "0a30a3af76d923485f3b53cec5f7bb2c4596cd2d2990046214e85564ef07d3da",
     "0a3d66d202daf0843c5161c9f5e714ce0e65b8e72b3b228db3aa86d19307557d",
-    "1ccc79f7728385164c61b92d97bd093d0d05bb265ea7f9446dde3b08659256bb"
+    "2c96296b28d13d4170b182600467ca17568ac2abc71a75d0b733a9abdce49618"
   ],
   "event_types": [
     "run_started",
@@ -87,6 +87,11 @@
     "specialist_reviews_generated": 0,
     "exocortex_backend_generations": 0,
     "flagged_contradictions_raised": 0,
+    "tool_requests": 0,
+    "unique_tool_requests": 0,
+    "repeated_tool_requests": 0,
+    "unjustified_tool_repeats": 0,
+    "consecutive_no_novelty_turns": 0,
     "rhae_level_scores": [
       1.0
     ],

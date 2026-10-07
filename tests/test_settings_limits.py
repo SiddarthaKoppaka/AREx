@@ -42,7 +42,7 @@ def test_active_target_cannot_exceed_model_headroom() -> None:
     with pytest.raises(ValueError, match="active context target"):
         resolve_runtime(
             "colab_transformers",
-            {"model_path": "/weights", "active_context_target": 16000},
+            {"model_path": "/weights", "active_context_target": 40000},
             environ={},
         )
 

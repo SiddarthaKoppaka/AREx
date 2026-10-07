@@ -25,12 +25,12 @@ def test_profile_environment_and_explicit_override_precedence(tmp_path: Path) ->
     assert settings.to_budget_config().limits[Resource.MODEL_CALLS] == 12
     transformers = settings.to_transformers_config()
     assert transformers.max_time_seconds == 180
-    assert transformers.max_context_tokens == 16384
+    assert transformers.max_context_tokens == 32768
     assert transformers.soft_input_limit == 12000
     assert transformers.compaction_pressure_start == 12000
-    assert transformers.active_context_target == 13500
+    assert transformers.active_context_target == 16000
     assert transformers.template_and_generation_margin == 512
-    assert transformers.max_input_tokens == 14848
+    assert transformers.max_input_tokens == 31232
     run = settings.to_run_config("run", "ls20")
     assert run.max_turns == 8
     assert run.scratchpad_token_budget == 2048

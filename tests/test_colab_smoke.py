@@ -14,9 +14,9 @@ def test_experiment_zero_defaults() -> None:
     )
     assert settings.max_turns == settings.max_model_calls == 8
     assert settings.max_new_tokens == 1024
-    assert settings.max_context_tokens == 16384
+    assert settings.max_context_tokens == 32768
     assert settings.soft_input_limit == 12000
-    assert settings.hard_input_limit == settings.max_input_tokens == 14848
+    assert settings.hard_input_limit == settings.max_input_tokens == 31232
 
 
 def test_remote_nf4_loading_is_explicit(monkeypatch) -> None:  # type: ignore[no-untyped-def]

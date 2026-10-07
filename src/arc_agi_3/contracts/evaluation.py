@@ -48,5 +48,10 @@ class EvaluationMetrics(Contract):
     specialist_reviews_generated: int = Field(default=0, ge=0)
     exocortex_backend_generations: int = Field(default=0, ge=0)
     flagged_contradictions_raised: int = Field(default=0, ge=0)
+    tool_requests: int = Field(default=0, ge=0)
+    unique_tool_requests: int = Field(default=0, ge=0)
+    repeated_tool_requests: int = Field(default=0, ge=0)
+    unjustified_tool_repeats: int = Field(default=0, ge=0)
+    consecutive_no_novelty_turns: int = Field(default=0, ge=0)
     rhae_level_scores: tuple[float, ...] = ()
     rhae_environment_score: float | None = None

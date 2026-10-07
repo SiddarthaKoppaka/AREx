@@ -42,6 +42,7 @@ def _sections(context: AgentContext) -> tuple[tuple[str, Any], ...]:
         ("HYPOTHESIS_LEDGER", context.hypothesis_ledger),
         ("UNRESOLVED_CONTRADICTIONS", context.unresolved_contradictions),
         ("ACTION_EVIDENCE", context.action_evidence),
+        ("TOOL_EVIDENCE", context.tool_evidence),
         ("WORKING_SCRATCHPAD", context.working_scratchpad),
         ("TASK_GRAPH", task_prompt_view(context.tasks)),
         ("MODEL_AUTHORED_WORLD_MODELS", context.world_models),

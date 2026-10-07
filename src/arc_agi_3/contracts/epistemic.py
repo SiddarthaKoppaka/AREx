@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, JsonValue
 
 from .base import Contract
 from .cognition import Hypothesis
@@ -43,6 +43,21 @@ class ActionEvidence(Contract):
     attempts_from_current_state: int = Field(ge=0)
     hypotheses_targeted: tuple[str, ...] = ()
     recent_outcomes: tuple[ActionOutcomeSummary, ...] = ()
+
+
+class ToolRequestEvidence(Contract):
+    """Repeat evidence for a cognitive tool request; never blocks or decides.
+
+    Mirrors ActionEvidence for tool_requests: the harness only reports what
+    was already tried and whether the state has changed since.
+    """
+
+    tool_name: str
+    arguments: dict[str, JsonValue]
+    fingerprint: str
+    attempts: int = Field(ge=0)
+    attempts_from_current_state: int = Field(ge=0)
+    last_request_event_id: str | None = None
 
 
 RepeatKind = Literal[
