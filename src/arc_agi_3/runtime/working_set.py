@@ -48,4 +48,9 @@ def epistemic_fields(
         fields["hypotheses"] = tuple(item.hypothesis for item in entries)
         fields["unresolved_contradictions"] = unresolved_contradictions(entries)
         fields["omitted_hypothesis_ids"] = omitted
+        # Unbounded, unlike `hypotheses` above: validates proposals/updates
+        # even against a hypothesis the ledger's display limit omitted.
+        fields["hypothesis_versions"] = {
+            item.hypothesis_id: item.version for item in workspace.beliefs.current
+        }
     return fields

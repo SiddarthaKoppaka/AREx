@@ -31,6 +31,15 @@ def initialize_run(
     )
 
 
+def failure_turn(io: EpisodeIO, current_turn: int) -> int:
+    """The turn in progress when a crash occurs may be ahead of the
+    session's own counter, which only advances after a successful return;
+    events for that turn were already recorded before the crash."""
+    history = io.events.read()
+    last_step = max((event.step_id for event in history), default=current_turn)
+    return max(current_turn, last_step)
+
+
 def record_failure(
     io: EpisodeIO, turn: int, error: Exception, *, action_pending: bool
 ) -> None:

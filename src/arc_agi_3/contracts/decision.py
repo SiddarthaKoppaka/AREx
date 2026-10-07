@@ -42,6 +42,7 @@ class AgentContext(Contract):
     latest_transition_event_id: str | None = None
     latest_verification: VerificationResult | None = None
     hypothesis_ledger: tuple[HypothesisLedgerEntry, ...] = ()
+    hypothesis_versions: dict[str, int] = Field(default_factory=dict)
     unresolved_contradictions: tuple[str, ...] = ()
     action_evidence: tuple[ActionEvidence, ...] = ()
     context_stats: ContextStats | None = None

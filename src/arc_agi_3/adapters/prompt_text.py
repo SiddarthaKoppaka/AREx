@@ -31,7 +31,13 @@ EPISTEMICS = (
     "confidence. Frame investigative actions with experiment and a checkable "
     "expected_outcome; prefer experiments whose outcomes differ across live "
     "hypotheses. Check ACTION_EVIDENCE before repeating an action; if you repeat "
-    "an equivalent experiment, state experiment.repeat_justification.\n"
+    "an equivalent experiment, state experiment.repeat_justification. "
+    "HYPOTHESIS IDENTITY: hypothesis_proposals is only for a genuinely new "
+    "hypothesis, with a fresh ID and version=1 - never re-propose an ID "
+    "already in HYPOTHESIS_LEDGER. To strengthen, weaken, revise, accept, "
+    "suspend, or reject an existing hypothesis, use hypothesis_updates with "
+    "its current expected_version instead; this is checked before your "
+    "decision is accepted and repaired the same cheap way as invalid JSON.\n"
 )
 
 TOOLS = (

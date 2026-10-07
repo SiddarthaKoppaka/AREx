@@ -25,7 +25,9 @@ def test_failure_event_reports_turn_pending_action_and_categories(
     assert result.stop_reason == "failure"
     failure = next(e for e in runner.events.read() if e.event_type is EventType.FAILURE)
     payload = failure.payload
-    assert payload["turn"] == 0
+    # Turn 1 was genuinely in progress (its MODEL_CALLS spend was already
+    # recorded) when the exhausted repair loop crashed, not turn 0.
+    assert payload["turn"] == 1
     assert payload["environment_action_pending"] is False
     assert payload["checkpoint_available"] is False
     assert payload["last_decision_event_id"] is None
@@ -52,3 +54,6 @@ def test_failure_event_points_at_the_last_good_decision_and_checkpoint(
     failure = next(e for e in events if e.event_type is EventType.FAILURE)
     assert failure.payload["last_decision_event_id"] == decision.event_id
     assert failure.payload["checkpoint_available"] is True
+    # Turn 1 completed successfully (self.turn advanced to 1); the crash
+    # happened during turn 2, which must not be misattributed to turn 1.
+    assert failure.payload["turn"] == 2

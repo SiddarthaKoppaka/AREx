@@ -4,7 +4,7 @@ The bounded primary-plus-repair engine itself lives in
 `structured_generation.run_structured` and is shared with ExoCortex
 specialist consultations (`runtime.specialist_tools`). This module only
 supplies what is specific to a CognitiveDecision: context compaction for
-the primary prompt, and the tool-contract check as `validate_extra`.
+the primary prompt, and the tool/belief-contract checks as `validate_extra`.
 """
 
 from arc_agi_3.contracts.decision import (
@@ -15,6 +15,7 @@ from arc_agi_3.contracts.decision import (
 )
 
 from .context_compaction import compact_with_report
+from .decision_context_check import check_decision_context
 from .decision_schema import decision_schema
 from .inference import InferenceBackend
 from .prompts import decision_prompt
@@ -37,6 +38,10 @@ def run_generation(
         projected, report = compact_with_report(context, backend, schema)
         return decision_prompt(projected), report
 
+    def validate_extra(parsed: CognitiveDecision) -> None:
+        check_tool_requests(parsed)
+        check_decision_context(parsed, context)
+
     decision, usage, attempts, report = run_structured(
         backend,
         schema,
@@ -46,7 +51,7 @@ def run_generation(
         persist_invalid_output=persist_invalid_output,
         preview_chars=preview_chars,
         turn=context.turn,
-        validate_extra=check_tool_requests,
+        validate_extra=validate_extra,
     )
     return ModelResponse(
         decision=decision, usage=usage, attempts=attempts, prompt=report
