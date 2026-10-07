@@ -41,8 +41,7 @@ HIDDEN_IN_CONTEXT = frozenset(
         EventType.TASK_UPDATE,
         EventType.WORLD_MODEL,
         EventType.SCRATCHPAD_UPDATE,
-        EventType.STUDENT_REPORT,
-        EventType.PEER_REVIEW,
-        EventType.CLASSROOM_SYNTHESIS,
+        EventType.SPECIALIST_REPORT,
+        EventType.SPECIALIST_REVIEW,
     }
 )

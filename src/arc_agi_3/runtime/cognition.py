@@ -4,6 +4,7 @@ from arc_agi_3.ablations import require_capability
 from arc_agi_3.contracts.decision import CognitiveDecision
 from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import EventEnvelope
+from arc_agi_3.contracts.observation import Observation
 
 from .io import EpisodeIO
 from .task_validation import validate_task_updates
@@ -15,6 +16,7 @@ def apply_cognitive_decision(
     decision_event: EventEnvelope,
     decision: CognitiveDecision,
     step: int,
+    observation: Observation,
 ) -> None:
     prior = [e for e in io.events.read() if e.event_id != decision_event.event_id]
     known = {event.event_id for event in prior}
@@ -86,4 +88,4 @@ def apply_cognitive_decision(
             (decision_event.event_id,),
         )
     for tool_request in decision.tool_requests:
-        run_tool(io, tool_request, decision_event, step)
+        run_tool(io, tool_request, decision_event, step, observation)

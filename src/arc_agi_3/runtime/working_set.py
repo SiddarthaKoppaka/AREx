@@ -10,6 +10,7 @@ from arc_agi_3.contracts.transition import TransitionEvidence
 from arc_agi_3.contracts.verification import VerificationResult
 from arc_agi_3.evidence import (
     action_evidence,
+    build_cognitive_synthesis,
     experiment_targets,
     hypothesis_ledger,
     transition_records,
@@ -27,7 +28,8 @@ def epistemic_fields(
     records = transition_records(history)
     targets = experiment_targets(history)
     fields: dict[str, Any] = {
-        "action_evidence": action_evidence(records, targets, observation)
+        "action_evidence": action_evidence(records, targets, observation),
+        "cognitive_synthesis": build_cognitive_synthesis(history),
     }
     if records:
         latest = records[-1]

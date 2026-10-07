@@ -1,7 +1,7 @@
-"""Per-role bounded evidence sections, built from the one shared AgentContext."""
+"""Per-faculty bounded evidence sections, built from the one shared AgentContext."""
 
-from arc_agi_3.contracts.classroom import StudentReport
 from arc_agi_3.contracts.decision import AgentContext
+from arc_agi_3.contracts.specialist_report import SpecialistReport
 
 from .observation_projection import observation_view
 from .prompt_render import render
@@ -18,7 +18,7 @@ def _verification_view(context: AgentContext) -> object:
     return verification.model_dump(mode="json", exclude={"delta"})
 
 
-def scientist_sections(context: AgentContext) -> str:
+def hypothesis_sections(context: AgentContext) -> str:
     view = observation_view(
         context.observation, include_raw_frame=not context.compact_observation
     )
@@ -30,7 +30,7 @@ def scientist_sections(context: AgentContext) -> str:
     )
 
 
-def world_modeler_sections(context: AgentContext) -> str:
+def dynamics_sections(context: AgentContext) -> str:
     return (
         section("LATEST_TRANSITION", context.latest_transition)
         + section("ACTION_EVIDENCE", context.action_evidence)
@@ -39,8 +39,8 @@ def world_modeler_sections(context: AgentContext) -> str:
     )
 
 
-def skeptic_sections(
-    context: AgentContext, own_history: tuple[StudentReport, ...]
+def critic_sections(
+    context: AgentContext, own_history: tuple[SpecialistReport, ...]
 ) -> str:
     return (
         section("WORKING_SCRATCHPAD", context.working_scratchpad)

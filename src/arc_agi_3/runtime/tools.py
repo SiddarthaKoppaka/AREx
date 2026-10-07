@@ -3,13 +3,18 @@
 from arc_agi_3.contracts.cognition import ToolRequest, ToolResult
 from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import EventEnvelope
+from arc_agi_3.contracts.observation import Observation
 
 from .io import EpisodeIO
 from .tool_handlers import execute_tool
 
 
 def run_tool(
-    io: EpisodeIO, request: ToolRequest, decision: EventEnvelope, step: int
+    io: EpisodeIO,
+    request: ToolRequest,
+    decision: EventEnvelope,
+    step: int,
+    observation: Observation,
 ) -> None:
     requested = io.append(
         EventType.TOOL_REQUEST,
@@ -19,7 +24,7 @@ def run_tool(
         (decision.event_id,),
     )
     try:
-        result = execute_tool(io, request, requested, step)
+        result = execute_tool(io, request, requested, step, observation)
     except (FileNotFoundError, KeyError, ValueError) as error:
         result = ToolResult(
             request_id=request.request_id,

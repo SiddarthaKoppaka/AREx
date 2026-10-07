@@ -58,9 +58,9 @@ def test_oversized_malformed_output_is_truncated_not_unbounded() -> None:
 
 def test_repair_prompt_names_the_actual_target_type_not_cognitive_decision() -> None:
     prompt = build_repair_prompt(
-        "malformed_json", "err", "{bad", target_type="StudentReport"
+        "malformed_json", "err", "{bad", target_type="SpecialistReport"
     )
-    assert "Repair this output into a valid StudentReport." in prompt
+    assert "Repair this output into a valid SpecialistReport." in prompt
     assert "CognitiveDecision" not in prompt
 
 

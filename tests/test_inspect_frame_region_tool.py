@@ -32,7 +32,9 @@ def test_inspect_frame_region_returns_the_exact_requested_crop(tmp_path) -> None
             "max_col": 2,
         },
     )
-    result = execute_tool(session.io, request, requested, 0)
+    result = execute_tool(
+        session.io, request, requested, 0, FakeLineEnvironment().reset()
+    )
     assert result.status == "complete"
     assert result.output["region"]["cells"] == [[1, 2], [5, 6]]
     assert result.evidence_refs == (observed.event_id,)
@@ -59,7 +61,7 @@ def test_inspect_frame_region_rejects_an_unknown_event_id(tmp_path) -> None:
         },
     )
     try:
-        execute_tool(session.io, request, requested, 0)
+        execute_tool(session.io, request, requested, 0, FakeLineEnvironment().reset())
     except ValueError as error:
         assert "does-not-exist" in str(error)
     else:

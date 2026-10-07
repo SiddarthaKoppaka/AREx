@@ -1,7 +1,7 @@
 """The one bounded primary-plus-repair generation engine.
 
-Every structured output in this project — CognitiveDecision, StudentReport,
-PeerReview — goes through this single function. Only attempt 1 ("primary")
+Every structured output in this project — CognitiveDecision, SpecialistReport,
+SpecialistReview — goes through this single function. Only attempt 1 ("primary")
 sees its full prompt; every repair uses `build_repair_prompt` instead: just
 the malformed text, the schema, and why it failed. `max_repairs` bounds the
 total, so one bad parse costs at most `max_repairs + 1` backend
@@ -79,7 +79,11 @@ def run_structured[T: BaseModel](
             error_text, malformed = validation_error_text(error), generated.text
             attempts.append(
                 record(
-                    number, generated.text, category, error_text, False,
+                    number,
+                    generated.text,
+                    category,
+                    error_text,
+                    False,
                     generated.usage,
                 )
             )

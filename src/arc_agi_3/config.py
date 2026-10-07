@@ -8,7 +8,7 @@ from arc_agi_3.contracts.base import Contract
 from arc_agi_3.contracts.enums import Resource
 from arc_agi_3.trace.canonical import canonical_hash
 
-from .classroom_config import ClassroomConfig
+from .exocortex_config import ExoCortexConfig
 
 
 class BudgetConfig(Contract):
@@ -83,7 +83,7 @@ class RunConfig(Contract):
     evaluator: EvaluatorConfig = Field(default_factory=EvaluatorConfig)
     belief: BeliefConfig = Field(default_factory=BeliefConfig)
     ablations: AblationConfig = Field(default_factory=AblationConfig)
-    classroom: ClassroomConfig | None = None
+    exocortex: ExoCortexConfig | None = None
 
     @property
     def config_hash(self) -> str:

@@ -17,6 +17,11 @@ from arc_agi_3.exploration.contracts import ExplorationOutcome, ExplorationReque
 from arc_agi_3.planning.contracts import SearchRequest
 from arc_agi_3.world_model.contracts import SimulationRequest
 
+from .contracts.specialist_tools import (
+    SpecialistCompareRequest,
+    SpecialistConsultRequest,
+)
+
 TOOL_ARGUMENTS: dict[str, type[Contract]] = {
     "archive_artifact": ArchiveArtifactRequest,
     "retrieve_artifact": ReadArtifactRequest,
@@ -28,4 +33,6 @@ TOOL_ARGUMENTS: dict[str, type[Contract]] = {
     "search_world_model": SearchRequest,
     "evaluate_exploration": ExplorationRequest,
     "record_exploration_outcome": ExplorationOutcome,
+    "consult_specialist": SpecialistConsultRequest,
+    "compare_specialist_reports": SpecialistCompareRequest,
 }

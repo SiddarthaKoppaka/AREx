@@ -1,10 +1,10 @@
-"""Teacher/CognitiveDecision generation: the thin, context-aware caller.
+"""Core agent/CognitiveDecision generation: the thin, context-aware caller.
 
 The bounded primary-plus-repair engine itself lives in
-`structured_generation.run_structured` and is shared with Students and
-peer reviews (`classroom_adapter`). This module only supplies what is
-specific to a CognitiveDecision: context compaction for the primary
-prompt, and the tool-contract check as `validate_extra`.
+`structured_generation.run_structured` and is shared with ExoCortex
+specialist consultations (`runtime.specialist_tools`). This module only
+supplies what is specific to a CognitiveDecision: context compaction for
+the primary prompt, and the tool-contract check as `validate_extra`.
 """
 
 from arc_agi_3.contracts.decision import (

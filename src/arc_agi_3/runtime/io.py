@@ -14,8 +14,9 @@ from arc_agi_3.recovery import BranchTracker
 from arc_agi_3.trace.checkpoints import CheckpointStore
 from arc_agi_3.trace.store import JsonlEventStore
 
-from .checkpointing import checkpoint_event_payload, save_checkpoint
+from .checkpointing import checkpoint_event_payload, checkpoint_id_for, save_checkpoint
 from .context import project_context
+from .exocortex import ExoCortex
 
 
 class EpisodeIO:
@@ -26,8 +27,9 @@ class EpisodeIO:
         events: JsonlEventStore,
         checkpoints: CheckpointStore,
         ledger: BudgetLedger,
+        exocortex: ExoCortex | None = None,
     ) -> None:
-        self.config, self.environment = config, environment
+        self.config, self.environment, self.exocortex = config, environment, exocortex
         self.events, self.checkpoints, self.ledger = events, checkpoints, ledger
         restore_supported = environment.metadata.get("restore_supported", False)
         capabilities = {"checkpoint_restore_supported": bool(restore_supported)}
@@ -82,9 +84,6 @@ class EpisodeIO:
         cause: str,
         suffix: int | None = None,
     ) -> None:
-        checkpoint_id = (
-            f"checkpoint-{step:06d}-{suffix:03d}" if suffix is not None else None
-        )
         checkpoint = save_checkpoint(
             self.config,
             step,
@@ -94,7 +93,7 @@ class EpisodeIO:
             self.events,
             self.checkpoints,
             self.workspace.snapshot(),
-            checkpoint_id,
+            checkpoint_id_for(step, suffix),
         )
         payload = checkpoint_event_payload(checkpoint)
         self.append(EventType.CHECKPOINT, "checkpoint", step, payload, (cause,))

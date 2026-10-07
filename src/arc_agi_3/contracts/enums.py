@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from .student_role import StudentRole as StudentRole
+from .cognitive_faculty import CognitiveFaculty as CognitiveFaculty
 
 
 class EnvironmentState(StrEnum):
@@ -55,9 +55,8 @@ class EventType(StrEnum):
     TRANSITION = "transition"
     VERIFICATION = "verification"
     EXPERIMENT = "experiment"
-    STUDENT_REPORT = "student_report"
-    PEER_REVIEW = "peer_review"
-    CLASSROOM_SYNTHESIS = "classroom_synthesis"
+    SPECIALIST_REPORT = "specialist_report"
+    SPECIALIST_REVIEW = "specialist_review"
     CHECKPOINT = "checkpoint"
     FAILURE = "failure"
     RUN_FINISHED = "run_finished"
