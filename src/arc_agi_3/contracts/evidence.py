@@ -23,7 +23,14 @@ class EvidenceQuery(Contract):
     event_ids: tuple[str, ...] = Field(min_length=1, max_length=8)
     view: EvidenceView
     purpose: str = Field(min_length=1, max_length=240)
-    token_budget: int = Field(ge=128, le=65536)
+    token_budget: int = Field(
+        ge=128,
+        le=65536,
+        description=(
+            "A serialized UTF-8 byte upper bound, not an LM tokenizer token "
+            "count — see the response's budget_method field."
+        ),
+    )
     region: FrameRegion | None = None
 
     @model_validator(mode="after")
