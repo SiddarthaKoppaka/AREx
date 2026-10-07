@@ -61,5 +61,10 @@ TOOLS = (
     "the real, enforced contract. A tool_requests entry is validated against "
     "it before your decision is accepted; a mismatch is repaired the same "
     "cheap way as invalid JSON, so match the schema exactly rather than "
-    "guessing field names.\n"
+    "guessing field names. "
+    "TOOL_EVIDENCE below shows attempts and attempts_from_current_state per "
+    "distinct tool call - mechanical, not a decision. A repeat under an "
+    "unchanged observation yields no new information unless the request "
+    "changes; when stalled, reconsider your hypothesis, experiment, an "
+    "ExoCortex faculty, or search.\n"
 )

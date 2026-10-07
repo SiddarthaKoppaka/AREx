@@ -12,10 +12,11 @@ from arc_agi_3.trace.store import JsonlEventStore
 
 
 class CharacterCounter:
-    # Hard limit allows room for the fixed TOOL_CONTRACTS schema block, which
-    # is not itself compactable (it never changes across turns).
+    # Hard limit allows room for the fixed TOOL_CONTRACTS schema block and
+    # fixed prose (CONTRACT/EPISTEMICS/TOOLS), none of which is compactable
+    # (it never changes across turns).
     config = SimpleNamespace(
-        soft_input_limit=6000, max_input_tokens=17000, model_name="test"
+        soft_input_limit=6000, max_input_tokens=17300, model_name="test"
     )
 
     def input_token_count(self, prompt: str, schema: dict[str, object]) -> int:

@@ -11,7 +11,12 @@ from .decision_core import BudgetRequest as BudgetRequest
 from .decision_core import CognitiveDecision as CognitiveDecision
 from .decision_core import PublicSummary as PublicSummary
 from .enums import Resource
-from .epistemic import ActionEvidence, ContextStats, HypothesisLedgerEntry
+from .epistemic import (
+    ActionEvidence,
+    ContextStats,
+    HypothesisLedgerEntry,
+    ToolRequestEvidence,
+)
 from .execution import ExpectedOutcome as ExpectedOutcome
 from .memory import EpisodeMemory
 from .model_io import ModelAttempt as ModelAttempt
@@ -45,6 +50,7 @@ class AgentContext(Contract):
     hypothesis_versions: dict[str, int] = Field(default_factory=dict)
     unresolved_contradictions: tuple[str, ...] = ()
     action_evidence: tuple[ActionEvidence, ...] = ()
+    tool_evidence: tuple[ToolRequestEvidence, ...] = ()
     context_stats: ContextStats | None = None
     current_observation_event_id: str | None = None
     compact_observation: bool = True

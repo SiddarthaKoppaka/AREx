@@ -18,6 +18,11 @@ from .generation_errors import ToolContractError
 
 
 def check_tool_requests(decision: CognitiveDecision) -> None:
+    ids = [request.request_id for request in decision.tool_requests]
+    if len(ids) != len(set(ids)):
+        raise ToolContractError(
+            "tool_requests entries must have unique request_id values"
+        )
     for request in decision.tool_requests:
         model = TOOL_ARGUMENTS.get(request.tool_name)
         if model is None:

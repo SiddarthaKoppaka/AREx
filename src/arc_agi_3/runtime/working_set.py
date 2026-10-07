@@ -13,9 +13,12 @@ from arc_agi_3.evidence import (
     build_cognitive_synthesis,
     experiment_targets,
     hypothesis_ledger,
+    tool_request_evidence,
     transition_records,
     unresolved_contradictions,
 )
+
+from .recent_events import current_observation_event_id
 
 
 def epistemic_fields(
@@ -27,9 +30,13 @@ def epistemic_fields(
     """Latest transition/verification, hypothesis ledger, and action cues."""
     records = transition_records(history)
     targets = experiment_targets(history)
+    current_observation = current_observation_event_id(
+        history, observation.observation_hash
+    )
     fields: dict[str, Any] = {
         "action_evidence": action_evidence(records, targets, observation),
         "cognitive_synthesis": build_cognitive_synthesis(history),
+        "tool_evidence": tool_request_evidence(history, current_observation),
     }
     if records:
         latest = records[-1]

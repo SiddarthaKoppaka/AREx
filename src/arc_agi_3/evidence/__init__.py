@@ -8,6 +8,7 @@ from .repeats import detect_repeat
 from .retrodiction import retrodict
 from .specialist_memory import recent_reports
 from .targets import experiment_targets
+from .tool_cues import tool_fingerprint, tool_request_evidence
 from .transition import build_transition
 
 __all__ = [
@@ -20,6 +21,8 @@ __all__ = [
     "hypothesis_ledger",
     "recent_reports",
     "retrodict",
+    "tool_fingerprint",
+    "tool_request_evidence",
     "transition_records",
     "unresolved_contradictions",
 ]
