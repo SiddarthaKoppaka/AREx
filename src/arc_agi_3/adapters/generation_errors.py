@@ -33,6 +33,14 @@ CATEGORY_INSTRUCTIONS: dict[ErrorCategory, str] = {
         "(see ERROR_DETAIL for the exact tool and fields; the schema is in "
         "TOOL_CONTRACTS). Repair only that entry's arguments."
     ),
+    "belief_contract_violation": (
+        "A hypothesis_proposals or hypothesis_updates entry conflicts with "
+        "the current HYPOTHESIS_LEDGER (see ERROR_DETAIL). A proposal must "
+        "use a fresh ID at version 1; an update must target an existing ID "
+        "with its current expected_version. Move the entry to the other "
+        "list or correct its ID/version - do not change your underlying "
+        "claim or confidence."
+    ),
     "unknown_backend_failure": (
         "The previous generation failed before producing output. Return a "
         "minimal valid object, matching the schema below, consistent with "
@@ -55,9 +63,15 @@ class ToolContractError(ValueError):
     """A tool_requests entry does not match its registered argument contract."""
 
 
+class BeliefContractError(ValueError):
+    """A hypothesis mutation conflicts with the current belief state."""
+
+
 def classify(error: Exception, text: str) -> ErrorCategory:
     if isinstance(error, ToolContractError):
         return "tool_contract_violation"
+    if isinstance(error, BeliefContractError):
+        return "belief_contract_violation"
     if isinstance(error, json.JSONDecodeError):
         return "malformed_json" if has_json_candidate(text) else "no_json_found"
     if isinstance(error, ValidationError):

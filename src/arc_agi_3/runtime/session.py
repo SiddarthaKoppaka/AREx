@@ -11,7 +11,7 @@ from .action_types import AuthorizedAction
 from .io import EpisodeIO
 from .session_chunk import accept_chunk_result, next_chunk_action
 from .session_decide import decide_until_action
-from .session_lifecycle import finish_run, initialize_run, record_failure
+from .session_lifecycle import failure_turn, finish_run, initialize_run, record_failure
 from .session_types import ActiveChunk
 from .state import RunResult
 from .usage import exhausted_reason
@@ -88,6 +88,7 @@ class CognitiveSession:
         return self.pending.action
 
     def fail(self, error: Exception) -> RunResult:
+        self.turn = failure_turn(self.io, self.turn)
         pending = self.pending is not None
         record_failure(self.io, self.turn, error, action_pending=pending)
         return self.finish("failure")
