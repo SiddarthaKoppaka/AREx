@@ -10,6 +10,7 @@ from pydantic import JsonValue
 
 from arc_agi_3.adapters.inference import InferenceBackend
 from arc_agi_3.adapters.protocols import ModelAdapter
+from arc_agi_3.adapters.system1 import System1Backend
 from arc_agi_3.exocortex_config import ExoCortexConfig
 
 
@@ -20,14 +21,16 @@ class ExoCortex:
 
 
 def model_metadata(
-    model: ModelAdapter, exocortex: ExoCortex | None
+    model: ModelAdapter,
+    exocortex: ExoCortex | None,
+    system1: System1Backend | None = None,
 ) -> dict[str, JsonValue]:
-    if exocortex is None:
-        return model.metadata
-    return {
-        **model.metadata,
-        "exocortex": {
+    metadata = dict(model.metadata)
+    if exocortex is not None:
+        metadata["exocortex"] = {
             "backend": exocortex.backend.metadata,
             "faculties": list(exocortex.config.faculties),
-        },
-    }
+        }
+    if system1 is not None:
+        metadata["system1"] = system1.metadata
+    return metadata

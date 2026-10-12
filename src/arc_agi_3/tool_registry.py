@@ -21,6 +21,7 @@ from .contracts.specialist_tools import (
     SpecialistCompareRequest,
     SpecialistConsultRequest,
 )
+from .contracts.system1 import System1DecisionRequest
 
 TOOL_ARGUMENTS: dict[str, type[Contract]] = {
     "archive_artifact": ArchiveArtifactRequest,
@@ -35,4 +36,5 @@ TOOL_ARGUMENTS: dict[str, type[Contract]] = {
     "record_exploration_outcome": ExplorationOutcome,
     "consult_specialist": SpecialistConsultRequest,
     "compare_specialist_reports": SpecialistCompareRequest,
+    "consult_system1": System1DecisionRequest,
 }

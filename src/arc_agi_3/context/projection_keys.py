@@ -43,5 +43,6 @@ HIDDEN_IN_CONTEXT = frozenset(
         EventType.SCRATCHPAD_UPDATE,
         EventType.SPECIALIST_REPORT,
         EventType.SPECIALIST_REVIEW,
+        EventType.SYSTEM1_DECISION,
     }
 )

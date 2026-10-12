@@ -14,6 +14,7 @@ from .evidence_tools import (
 from .io import EpisodeIO
 from .specialist_compare_tool import compare_specialist_reports_tool
 from .specialist_tools import consult_specialist_tool
+from .system1_tool import consult_system1_tool
 from .world_model_tools import (
     evaluate_exploration_tool,
     record_exploration_outcome_tool,
@@ -33,6 +34,8 @@ def execute_tool(
         return consult_specialist_tool(io, request, requested, observation, step)
     if request.tool_name == "compare_specialist_reports":
         return compare_specialist_reports_tool(io, request, requested, step)
+    if request.tool_name == "consult_system1":
+        return consult_system1_tool(io, request, requested, step)
     if request.tool_name == "archive_artifact":
         return archive_artifact(io, request, requested)
     if request.tool_name == "retrieve_artifact":

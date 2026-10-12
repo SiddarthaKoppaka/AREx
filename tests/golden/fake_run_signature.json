@@ -19,7 +19,7 @@
     "ca7780c9a98ef4438b62f7bd9eef376337a099f2714e3071c7a6c3e18b1f3d9b",
     "0a30a3af76d923485f3b53cec5f7bb2c4596cd2d2990046214e85564ef07d3da",
     "0a3d66d202daf0843c5161c9f5e714ce0e65b8e72b3b228db3aa86d19307557d",
-    "2c96296b28d13d4170b182600467ca17568ac2abc71a75d0b733a9abdce49618"
+    "f2ab37c0caac459b7518c1e0e6b40d64fb9e6ff09027f5fbbffd9b2d4eca2f28"
   ],
   "event_types": [
     "run_started",
@@ -92,6 +92,14 @@
     "repeated_tool_requests": 0,
     "unjustified_tool_repeats": 0,
     "consecutive_no_novelty_turns": 0,
+    "system1_requests": 0,
+    "system1_suggestions": 0,
+    "system1_delegated_executions": 0,
+    "system1_mean_candidate_count": 0.0,
+    "system1_mean_confidence": 0.0,
+    "system1_mean_entropy": 0.0,
+    "system1_stall_detections": 0,
+    "system1_mean_latency_ms": 0.0,
     "rhae_level_scores": [
       1.0
     ],

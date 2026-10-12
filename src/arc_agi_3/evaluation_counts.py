@@ -5,6 +5,7 @@ from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.evaluation_epistemic import epistemic_counts
 from arc_agi_3.evaluation_exocortex import exocortex_counts
 from arc_agi_3.evaluation_generation import generation_counts
+from arc_agi_3.evaluation_system1 import system1_counts
 from arc_agi_3.evaluation_tool_repeats import tool_repeat_counts
 
 
@@ -52,6 +53,7 @@ def event_research_counts(events: list[EventEnvelope]) -> dict[str, int | float]
         **generation_counts(events),
         **exocortex_counts(events),
         **tool_repeat_counts(events),
+        **system1_counts(events),
     }
 
 

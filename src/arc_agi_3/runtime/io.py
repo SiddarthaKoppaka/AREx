@@ -3,6 +3,7 @@
 from pydantic import JsonValue
 
 from arc_agi_3.adapters.protocols import EnvironmentAdapter
+from arc_agi_3.adapters.system1 import System1Backend
 from arc_agi_3.budgets import BudgetLedger
 from arc_agi_3.cognition import CognitiveWorkspace
 from arc_agi_3.config import RunConfig
@@ -14,7 +15,7 @@ from arc_agi_3.recovery import BranchTracker
 from arc_agi_3.trace.checkpoints import CheckpointStore
 from arc_agi_3.trace.store import JsonlEventStore
 
-from .checkpointing import checkpoint_event_payload, checkpoint_id_for, save_checkpoint
+from .checkpointing import record_checkpoint
 from .context import project_context
 from .exocortex import ExoCortex
 
@@ -28,8 +29,10 @@ class EpisodeIO:
         checkpoints: CheckpointStore,
         ledger: BudgetLedger,
         exocortex: ExoCortex | None = None,
+        system1: System1Backend | None = None,
     ) -> None:
-        self.config, self.environment, self.exocortex = config, environment, exocortex
+        self.config, self.environment = config, environment
+        self.exocortex, self.system1 = exocortex, system1
         self.events, self.checkpoints, self.ledger = events, checkpoints, ledger
         restore_supported = environment.metadata.get("restore_supported", False)
         capabilities = {"checkpoint_restore_supported": bool(restore_supported)}
@@ -84,16 +87,4 @@ class EpisodeIO:
         cause: str,
         suffix: int | None = None,
     ) -> None:
-        checkpoint = save_checkpoint(
-            self.config,
-            step,
-            observation,
-            self.environment,
-            self.ledger,
-            self.events,
-            self.checkpoints,
-            self.workspace.snapshot(),
-            checkpoint_id_for(step, suffix),
-        )
-        payload = checkpoint_event_payload(checkpoint)
-        self.append(EventType.CHECKPOINT, "checkpoint", step, payload, (cause,))
+        record_checkpoint(self, step, observation, cause, suffix)

@@ -57,6 +57,7 @@ class EventType(StrEnum):
     EXPERIMENT = "experiment"
     SPECIALIST_REPORT = "specialist_report"
     SPECIALIST_REVIEW = "specialist_review"
+    SYSTEM1_DECISION = "system1_decision"
     CHECKPOINT = "checkpoint"
     FAILURE = "failure"
     RUN_FINISHED = "run_finished"

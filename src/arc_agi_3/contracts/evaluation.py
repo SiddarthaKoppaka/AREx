@@ -53,5 +53,13 @@ class EvaluationMetrics(Contract):
     repeated_tool_requests: int = Field(default=0, ge=0)
     unjustified_tool_repeats: int = Field(default=0, ge=0)
     consecutive_no_novelty_turns: int = Field(default=0, ge=0)
+    system1_requests: int = Field(default=0, ge=0)
+    system1_suggestions: int = Field(default=0, ge=0)
+    system1_delegated_executions: int = Field(default=0, ge=0)
+    system1_mean_candidate_count: float = Field(default=0.0, ge=0)
+    system1_mean_confidence: float = Field(default=0.0, ge=0)
+    system1_mean_entropy: float = Field(default=0.0, ge=0)
+    system1_stall_detections: int = Field(default=0, ge=0)
+    system1_mean_latency_ms: float = Field(default=0.0, ge=0)
     rhae_level_scores: tuple[float, ...] = ()
     rhae_environment_score: float | None = None

@@ -1,15 +1,21 @@
 """Create trace-linked runtime checkpoints."""
 
+from typing import TYPE_CHECKING
+
 from pydantic import JsonValue
 
 from arc_agi_3.adapters.protocols import EnvironmentAdapter
 from arc_agi_3.budgets import BudgetLedger
 from arc_agi_3.config import RunConfig
+from arc_agi_3.contracts.enums import EventType
 from arc_agi_3.contracts.events import CheckpointRecord
 from arc_agi_3.contracts.observation import Observation
 from arc_agi_3.trace.canonical import canonical_hash
 from arc_agi_3.trace.checkpoints import CheckpointStore
 from arc_agi_3.trace.store import JsonlEventStore
+
+if TYPE_CHECKING:
+    from .io import EpisodeIO
 
 
 def save_checkpoint(
@@ -52,3 +58,25 @@ def checkpoint_id_for(step_id: int, suffix: int | None) -> str | None:
     if suffix is None:
         return None
     return f"checkpoint-{step_id:06d}-{suffix:03d}"
+
+
+def record_checkpoint(
+    io: "EpisodeIO",
+    step_id: int,
+    observation: Observation,
+    cause: str,
+    suffix: int | None,
+) -> None:
+    checkpoint = save_checkpoint(
+        io.config,
+        step_id,
+        observation,
+        io.environment,
+        io.ledger,
+        io.events,
+        io.checkpoints,
+        io.workspace.snapshot(),
+        checkpoint_id_for(step_id, suffix),
+    )
+    payload = checkpoint_event_payload(checkpoint)
+    io.append(EventType.CHECKPOINT, "checkpoint", step_id, payload, (cause,))

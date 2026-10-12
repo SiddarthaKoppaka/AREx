@@ -5,6 +5,7 @@ from datetime import datetime
 
 from arc_agi_3.adapters.inference import InferenceBackend
 from arc_agi_3.adapters.protocols import EnvironmentAdapter, ModelAdapter
+from arc_agi_3.adapters.system1 import System1Backend
 from arc_agi_3.budgets import BudgetLedger
 from arc_agi_3.config import RunConfig
 from arc_agi_3.exocortex_config import ExoCortexConfig
@@ -25,6 +26,7 @@ def build_session(
     model: ModelAdapter,
     *,
     specialist_backend: InferenceBackend | None = None,
+    system1_backend: System1Backend | None = None,
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
     manifest: RunManifest | None = None,
@@ -53,9 +55,12 @@ def build_session(
         CheckpointStore(run_dir / "checkpoints"),
         BudgetLedger(config.budget.limits),
         exocortex,
+        system1_backend,
     )
     resolved_manifest = manifest or build_manifest(
-        config, model_metadata(model, exocortex), environment.metadata
+        config,
+        model_metadata(model, exocortex, system1_backend),
+        environment.metadata,
     )
     write_manifest(run_dir / "manifest.json", resolved_manifest)
     return CognitiveSession(io, model, resolved_manifest)
@@ -67,6 +72,7 @@ def build_runner(
     model: ModelAdapter,
     *,
     specialist_backend: InferenceBackend | None = None,
+    system1_backend: System1Backend | None = None,
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
     manifest: RunManifest | None = None,
@@ -78,6 +84,7 @@ def build_runner(
         environment,
         model,
         specialist_backend=specialist_backend,
+        system1_backend=system1_backend,
         clock=clock,
         id_factory=id_factory,
         manifest=manifest,
