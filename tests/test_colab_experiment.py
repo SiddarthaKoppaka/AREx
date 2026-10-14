@@ -57,14 +57,34 @@ def test_invalid_smoke_stops_before_episode(
     assert not (tmp_path / "runs").exists()
 
 
+def test_system1_backend_is_threaded_through_to_build_runner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = _prepare(tmp_path, monkeypatch, '{"status":"ok"}')
+    captured: dict[str, object] = {}
+
+    def fake_runner(self, run_id, game_id, environment, backend, **kwargs):  # type: ignore[no-untyped-def]
+        captured.update(kwargs)
+        (self.output_dir / run_id).mkdir(parents=True)
+        result = SimpleNamespace(model_dump=lambda mode: {"stop_reason": "terminal"})
+        return SimpleNamespace(session=SimpleNamespace(result={}), run=lambda: result)
+
+    monkeypatch.setattr(RuntimeSettings, "build_runner", fake_runner)
+    fake_system1 = SimpleNamespace(metadata={"provider": "jev"})
+    colab_experiment.run_colab_experiment(
+        settings, tmp_path / "arc", system1_backend=fake_system1
+    )
+    assert captured["specialist_backend"] is None
+    assert captured["system1_backend"] is fake_system1
+
+
 def test_captured_failure_still_writes_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     settings = _prepare(tmp_path, monkeypatch, '```json\n{"status":"ok"}\n```')
 
     def fake_runner(self, run_id, game_id, environment, backend, **kwargs):  # type: ignore[no-untyped-def]
-        run_dir = self.output_dir / run_id
-        run_dir.mkdir(parents=True)
+        (self.output_dir / run_id).mkdir(parents=True)
         result = {"stop_reason": "failure"}
 
         def fail():  # type: ignore[no-untyped-def]

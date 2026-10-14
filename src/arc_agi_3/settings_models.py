@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from arc_agi_3.adapters.inference import InferenceBackend
     from arc_agi_3.adapters.protocols import EnvironmentAdapter
     from arc_agi_3.adapters.structured_model import StructuredModelAdapter
+    from arc_agi_3.adapters.system1 import System1Backend
     from arc_agi_3.adapters.transformers import TransformersConfig
     from arc_agi_3.config import BudgetConfig, RunConfig
     from arc_agi_3.runtime.reporting import LiveReporter
@@ -65,13 +66,9 @@ class RuntimeSettings(RuntimeFields):
     def to_structured_adapter(
         self, backend: "InferenceBackend"
     ) -> "StructuredModelAdapter":
-        from arc_agi_3.adapters.structured_model import StructuredModelAdapter
+        from .settings_composition import structured_adapter
 
-        return StructuredModelAdapter(
-            backend,
-            max_repairs=self.max_repairs,
-            persist_invalid_output=self.persist_invalid_model_output,
-        )
+        return structured_adapter(self, backend)
 
     def build_runner(
         self,
@@ -82,6 +79,9 @@ class RuntimeSettings(RuntimeFields):
         seed: int = 0,
         reporter: "LiveReporter | None" = None,
         raise_on_failure: bool = False,
+        *,
+        specialist_backend: "InferenceBackend | None" = None,
+        system1_backend: "System1Backend | None" = None,
     ) -> "EpisodeRunner":
         from arc_agi_3.runtime import build_runner
 
@@ -90,6 +90,8 @@ class RuntimeSettings(RuntimeFields):
             config,
             environment,
             self.to_structured_adapter(backend),
+            specialist_backend=specialist_backend,
+            system1_backend=system1_backend,
             reporter=reporter,
             raise_on_failure=raise_on_failure,
         )

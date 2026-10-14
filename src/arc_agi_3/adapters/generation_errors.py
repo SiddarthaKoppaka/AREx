@@ -6,47 +6,10 @@ or validator stage rejected the text, not at what the model was trying to say.
 
 import json
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from arc_agi_3.contracts.decision import ModelUsage
 from arc_agi_3.contracts.generation import ErrorCategory
-
-CATEGORY_INSTRUCTIONS: dict[ErrorCategory, str] = {
-    "no_json_found": (
-        "Return ONLY one valid JSON object matching the schema below. Do not "
-        "include analysis, markdown, or prose."
-    ),
-    "malformed_json": (
-        "A JSON object was started but did not parse. Close every brace/quote "
-        "and remove trailing commas or comments."
-    ),
-    "schema_validation": (
-        "One or more fields have the wrong type, are missing, or are not "
-        "permitted by the schema. Repair only the structured object."
-    ),
-    "logical_contract": (
-        "The object is valid JSON but violates a cross-field rule (see "
-        "ERROR_DETAIL). Adjust only the fields the rule names."
-    ),
-    "tool_contract_violation": (
-        "A tool_requests entry does not match that tool's argument schema "
-        "(see ERROR_DETAIL for the exact tool and fields; the schema is in "
-        "TOOL_CONTRACTS). Repair only that entry's arguments."
-    ),
-    "belief_contract_violation": (
-        "A hypothesis_proposals or hypothesis_updates entry conflicts with "
-        "the current HYPOTHESIS_LEDGER (see ERROR_DETAIL). A proposal must "
-        "use a fresh ID at version 1; an update must target an existing ID "
-        "with its current expected_version. Move the entry to the other "
-        "list or correct its ID/version - do not change your underlying "
-        "claim or confidence."
-    ),
-    "unknown_backend_failure": (
-        "The previous generation failed before producing output. Return a "
-        "minimal valid object, matching the schema below, consistent with "
-        "your prior intent."
-    ),
-}
 
 
 def has_json_candidate(text: str) -> bool:
@@ -59,6 +22,26 @@ def is_logical_contract_error(error: ValidationError) -> bool:
     return bool(errors) and all(item["type"] == "value_error" for item in errors)
 
 
+def is_root_type_confusion(
+    error: ValidationError, output_model: type[BaseModel]
+) -> bool:
+    """True when the model likely returned a nested type's shape as the root
+    object: every required top-level field is missing, and there are fields
+    present that the schema forbids (extra="forbid")."""
+    errors = error.errors(include_context=False, include_input=False, include_url=False)
+    if not any(item["type"] == "extra_forbidden" for item in errors):
+        return False
+    missing = {
+        item["loc"][0]
+        for item in errors
+        if item["type"] == "missing" and len(item["loc"]) == 1
+    }
+    required = {
+        name for name, field in output_model.model_fields.items() if field.is_required()
+    }
+    return bool(required) and required <= missing
+
+
 class ToolContractError(ValueError):
     """A tool_requests entry does not match its registered argument contract."""
 
@@ -67,7 +50,9 @@ class BeliefContractError(ValueError):
     """A hypothesis mutation conflicts with the current belief state."""
 
 
-def classify(error: Exception, text: str) -> ErrorCategory:
+def classify(
+    error: Exception, text: str, output_model: type[BaseModel]
+) -> ErrorCategory:
     if isinstance(error, ToolContractError):
         return "tool_contract_violation"
     if isinstance(error, BeliefContractError):
@@ -75,6 +60,8 @@ def classify(error: Exception, text: str) -> ErrorCategory:
     if isinstance(error, json.JSONDecodeError):
         return "malformed_json" if has_json_candidate(text) else "no_json_found"
     if isinstance(error, ValidationError):
+        if is_root_type_confusion(error, output_model):
+            return "root_type_confusion"
         if is_logical_contract_error(error):
             return "logical_contract"
         return "schema_validation"

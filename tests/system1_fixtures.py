@@ -58,3 +58,25 @@ def result_selecting(
         confidence=0.8,
         stalled_probability=0.7,
     )
+
+
+def typesafe_response(
+    choice: str = "move-down", *, with_stalled: bool = True
+) -> dict[str, object]:
+    """A SystemOneResponse shaped exactly like TypeSafe's real /v1/systemone
+    reply (verified against api.typesafe.ai/openapi.json 2026-10-14)."""
+    answers: dict[str, object] = {
+        "select_candidate": {
+            "type": "choice",
+            "choice": choice,
+            "confidence": 0.84,
+            "probabilities": {"inspect-region": 0.4, "move-down": 0.6},
+        }
+    }
+    if with_stalled:
+        answers["stalled"] = {"type": "noul", "noul": 0.91}
+    return {
+        "model": "jev-latest",
+        "answers": answers,
+        "usage": {"input_tokens": 120, "output_tokens": 40},
+    }

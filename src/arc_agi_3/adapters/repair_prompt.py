@@ -9,7 +9,7 @@ generations in the live run that motivated this module.
 
 from arc_agi_3.contracts.generation import ErrorCategory
 
-from .generation_errors import CATEGORY_INSTRUCTIONS
+from .repair_instructions import CATEGORY_INSTRUCTIONS
 
 MAX_MALFORMED_ECHO = 4000
 
@@ -36,7 +36,7 @@ def build_repair_prompt(
 ) -> str:
     return (
         _BASE.format(target_type=target_type)
-        + CATEGORY_INSTRUCTIONS[category]
+        + CATEGORY_INSTRUCTIONS[category].format(target_type=target_type)
         + f"\nERROR_CATEGORY: {category}\nERROR_DETAIL:\n{error_text}\n"
         "MALFORMED_OUTPUT:\n" + _echo(malformed_output)
     )

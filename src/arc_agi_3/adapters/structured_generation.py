@@ -75,7 +75,7 @@ def run_structured[T: BaseModel](
             if validate_extra is not None:
                 validate_extra(parsed)
         except (json.JSONDecodeError, ValidationError, ValueError) as error:
-            category = classify(error, generated.text)
+            category = classify(error, generated.text, output_model)
             error_text, malformed = validation_error_text(error), generated.text
             attempts.append(
                 record(

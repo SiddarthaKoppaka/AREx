@@ -8,6 +8,7 @@ ErrorCategory = Literal[
     "no_json_found",
     "malformed_json",
     "schema_validation",
+    "root_type_confusion",
     "logical_contract",
     "tool_contract_violation",
     "belief_contract_violation",

@@ -2,11 +2,23 @@
 
 from pathlib import Path
 
+from arc_agi_3.adapters.inference import InferenceBackend
+from arc_agi_3.adapters.structured_model import StructuredModelAdapter
 from arc_agi_3.adapters.transformers import TransformersConfig
 from arc_agi_3.config import BudgetConfig, RunConfig
 from arc_agi_3.contracts.enums import Resource
 
 from .settings_models import RuntimeSettings
+
+
+def structured_adapter(
+    settings: RuntimeSettings, backend: InferenceBackend
+) -> StructuredModelAdapter:
+    return StructuredModelAdapter(
+        backend,
+        max_repairs=settings.max_repairs,
+        persist_invalid_output=settings.persist_invalid_model_output,
+    )
 
 
 def transformers_config(

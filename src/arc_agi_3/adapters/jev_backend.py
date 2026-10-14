@@ -1,9 +1,10 @@
-"""Adapter for the JEV System-1 decision API. See ADR-0010.
+"""Adapter for TypeSafe's real JEV System-1 API. See ADR-0010.
 
-The wire format assumed here is the System1DecisionRequest/Result JSON
-shape itself, since no JEV API documentation was available while writing
-this adapter - replace `_post` with the real client call once JEV's
-actual request/response schema is known. Never logs or traces the API key.
+Verified against https://api.typesafe.ai/openapi.json on 2026-10-14 -
+POST /v1/systemone, bearer auth. jev_wire.py owns the translation to/from
+System1DecisionRequest/Result; this module owns the HTTP call, the
+credential, and turning any failure into a clean, non-crashing error.
+Never logs or traces the API key.
 """
 
 import json
@@ -16,9 +17,12 @@ from typing import Any
 from pydantic import JsonValue
 
 from arc_agi_3.contracts.system1 import System1DecisionRequest, System1DecisionResult
-from arc_agi_3.trace.canonical import canonical_json
+
+from .jev_wire import build_request_body, parse_response_body
 
 JEV_API_KEY_ENV = "JEV_API_KEY"
+DEFAULT_BASE_URL = "https://api.typesafe.ai"
+DEFAULT_MODEL = "jev-latest"
 DEFAULT_TIMEOUT_SECONDS = 10.0
 
 
@@ -33,8 +37,9 @@ class JevBackendError(ValueError):
 class JevBackend:
     def __init__(
         self,
-        base_url: str,
+        base_url: str = DEFAULT_BASE_URL,
         *,
+        model: str = DEFAULT_MODEL,
         timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
         api_key_env: str = JEV_API_KEY_ENV,
     ) -> None:
@@ -44,12 +49,13 @@ class JevBackend:
                 f"JEV is configured but {api_key_env} is not set in the environment"
             )
         self._base_url = base_url.rstrip("/")
+        self._model = model
         self._api_key = api_key
         self._timeout_seconds = timeout_seconds
 
     @property
     def metadata(self) -> dict[str, JsonValue]:
-        return {"provider": "jev", "base_url": self._base_url}
+        return {"provider": "jev", "base_url": self._base_url, "model": self._model}
 
     def decide(self, request: System1DecisionRequest) -> System1DecisionResult:
         started = time.monotonic()
@@ -59,8 +65,8 @@ class JevBackend:
             raise JevBackendError(f"JEV request failed: {error}") from error
         latency_ms = int((time.monotonic() - started) * 1000)
         try:
-            result = System1DecisionResult.model_validate(raw)
-        except Exception as error:
+            result = parse_response_body(request, raw)
+        except (KeyError, TypeError, ValueError) as error:
             raise JevBackendError(
                 f"JEV returned an invalid decision: {error}"
             ) from error
@@ -69,9 +75,9 @@ class JevBackend:
         return result
 
     def _post(self, request: System1DecisionRequest) -> dict[str, Any]:
-        body = canonical_json(request).encode("utf-8")
+        body = json.dumps(build_request_body(self._model, request)).encode("utf-8")
         http_request = urllib.request.Request(
-            f"{self._base_url}/v1/decide",
+            f"{self._base_url}/v1/systemone",
             data=body,
             method="POST",
             headers={

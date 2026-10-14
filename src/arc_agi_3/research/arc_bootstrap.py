@@ -3,6 +3,20 @@
 import argparse
 from importlib import import_module
 from pathlib import Path
+from typing import Any
+
+
+def load_offline_wrapper(arc_agi: Any, root: Path, game_id: str, seed: int) -> Any:
+    arcade = arc_agi.Arcade(
+        operation_mode=arc_agi.OperationMode.OFFLINE, environments_dir=str(root)
+    )
+    wrapper = arcade.make(game_id, seed=seed, include_frame_data=True)
+    if wrapper is None:
+        raise FileNotFoundError(
+            f"ARC offline environment {game_id} is missing under {root}; "
+            "run the explicit bootstrap cell before loading the model"
+        )
+    return wrapper
 
 
 def main() -> None:

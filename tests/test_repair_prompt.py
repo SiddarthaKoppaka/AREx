@@ -64,6 +64,17 @@ def test_repair_prompt_names_the_actual_target_type_not_cognitive_decision() -> 
     assert "CognitiveDecision" not in prompt
 
 
+def test_root_type_confusion_instruction_names_the_target_type_twice() -> None:
+    prompt = build_repair_prompt(
+        "root_type_confusion",
+        "assessment: Field required",
+        '{"action_id": 1}',
+        target_type="CognitiveDecision",
+    )
+    assert "root object must be exactly CognitiveDecision" in prompt
+    assert "one complete CognitiveDecision object" in prompt
+
+
 def test_the_live_repair_call_never_carries_the_full_context() -> None:
     backend = ScriptedBackend(["not json", VALID])
     StructuredModelAdapter(backend).decide(context())

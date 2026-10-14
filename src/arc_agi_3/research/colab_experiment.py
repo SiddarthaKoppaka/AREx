@@ -3,31 +3,21 @@
 from importlib import import_module
 from pathlib import Path
 from time import perf_counter
-from typing import Any
 from uuid import uuid4
 
 from arc_agi_3.adapters.arc import ArcEnvironmentAdapter
+from arc_agi_3.adapters.inference import InferenceBackend
 from arc_agi_3.adapters.structured_output import parse_json_object
+from arc_agi_3.adapters.system1 import System1Backend
 from arc_agi_3.adapters.transformers import TransformersBackend
 from arc_agi_3.runtime.reporting import LiveReporter
 from arc_agi_3.settings_models import RuntimeSettings
 from arc_agi_3.trace.canonical import canonical_json
 
+from .arc_bootstrap import load_offline_wrapper
+from .colab_architecture import print_architecture
 from .gpu import gpu_vram_gib
 from .model_staging import stage_model
-
-
-def _load_arc_wrapper(arc_agi: Any, root: Path, game_id: str, seed: int) -> Any:
-    arcade = arc_agi.Arcade(
-        operation_mode=arc_agi.OperationMode.OFFLINE, environments_dir=str(root)
-    )
-    wrapper = arcade.make(game_id, seed=seed, include_frame_data=True)
-    if wrapper is None:
-        raise FileNotFoundError(
-            f"ARC offline environment {game_id} is missing under {root}; "
-            "run the explicit bootstrap cell before loading the model"
-        )
-    return wrapper
 
 
 def run_colab_experiment(
@@ -36,6 +26,8 @@ def run_colab_experiment(
     *,
     game_id: str = "ls20",
     seed: int = 0,
+    specialist_backend: InferenceBackend | None = None,
+    system1_backend: System1Backend | None = None,
 ) -> dict[str, object]:
     if settings.profile not in ("colab_transformers", "local_smoke"):
         raise ValueError("Transformers workflow requires a local or Colab profile")
@@ -52,7 +44,7 @@ def run_colab_experiment(
     reporter.stage("gpu", vram_gib=vram)
     arc_agi = import_module("arc_agi")
     started = perf_counter()
-    wrapper = _load_arc_wrapper(arc_agi, dataset_root, game_id, seed)
+    wrapper = load_offline_wrapper(arc_agi, dataset_root, game_id, seed)
     reporter.stage("arc_environment_finish", seconds=round(perf_counter() - started, 3))
     source = settings.model_path
     cache = settings.model_cache_dir or Path("/content/arex-model-cache")
@@ -66,6 +58,7 @@ def run_colab_experiment(
     backend = TransformersBackend(
         settings.to_transformers_config(model_path=model_path), reporter=reporter
     )
+    print_architecture(specialist_backend, system1_backend)
     started = perf_counter()
     smoke = backend.generate(
         'Return exactly {"status":"ok"} as JSON.',
@@ -87,6 +80,8 @@ def run_colab_experiment(
         seed=seed,
         reporter=reporter,
         raise_on_failure=True,
+        specialist_backend=specialist_backend,
+        system1_backend=system1_backend,
     )
     started = perf_counter()
     try:
