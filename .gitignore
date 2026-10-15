@@ -27,6 +27,7 @@ htmlcov/
 
 # Builds, runtime artifacts, and derived research data
 dist/
+dist/kaggle-wheelhouse/
 build/
 runs/
 recordings/
