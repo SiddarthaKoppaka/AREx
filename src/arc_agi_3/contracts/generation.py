@@ -11,5 +11,6 @@ ErrorCategory = Literal[
     "logical_contract",
     "tool_contract_violation",
     "belief_contract_violation",
+    "scratchpad_contract_violation",
     "unknown_backend_failure",
 ]

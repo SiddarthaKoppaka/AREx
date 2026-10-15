@@ -9,7 +9,7 @@ generations in the live run that motivated this module.
 
 from arc_agi_3.contracts.generation import ErrorCategory
 
-from .generation_errors import CATEGORY_INSTRUCTIONS
+from .repair_instructions import CATEGORY_INSTRUCTIONS
 
 MAX_MALFORMED_ECHO = 4000
 

@@ -19,6 +19,7 @@ from .decision_context_check import check_decision_context
 from .decision_schema import decision_schema
 from .inference import InferenceBackend
 from .prompts import decision_prompt
+from .scratchpad_contract_check import check_scratchpad_update
 from .structured_generation import run_structured
 from .structured_output import StructuredOutputError as StructuredOutputError
 from .tool_contract_check import check_tool_requests
@@ -41,6 +42,7 @@ def run_generation(
     def validate_extra(parsed: CognitiveDecision) -> None:
         check_tool_requests(parsed)
         check_decision_context(parsed, context)
+        check_scratchpad_update(parsed, context)
 
     decision, usage, attempts, report = run_structured(
         backend,

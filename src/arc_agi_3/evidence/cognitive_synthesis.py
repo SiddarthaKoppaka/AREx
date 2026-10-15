@@ -1,12 +1,14 @@
-"""Mechanical aggregation of every specialist report/review so far this
-episode, for the core agent's context.
+"""Mechanical aggregation of the most recent specialist reports/reviews
+this episode, for the core agent's context.
 
 Like the hypothesis ledger, this groups and flattens what specialists
 said. It never decides whose claim is correct — the core agent reads this
 and revises its own authoritative beliefs explicitly. Rebuilt fresh from
-the immutable trace each turn, the same as every other context view, so a
-report from turn 1 is still visible in turn 5's synthesis with no
-re-consultation.
+the immutable trace each turn, the same as every other context view.
+Bounded the same way `tool_cues.py`/`action_cues.py` already are: an
+older report beyond `limit` is omitted from this view (never from the
+trace) with an explicit count, rather than growing without bound for the
+whole episode.
 """
 
 from arc_agi_3.contracts.cognitive_synthesis import (
@@ -20,20 +22,22 @@ from arc_agi_3.contracts.specialist_review import SpecialistReview
 
 
 def build_cognitive_synthesis(
-    history: list[EventEnvelope],
+    history: list[EventEnvelope], limit: int = 8
 ) -> CognitiveSynthesis | None:
-    reports = tuple(
+    all_reports = tuple(
         SpecialistReport.model_validate(event.payload["report"])
         for event in history
         if event.event_type is EventType.SPECIALIST_REPORT
     )
-    if not reports:
+    if not all_reports:
         return None
-    reviews = tuple(
+    all_reviews = tuple(
         SpecialistReview.model_validate(event.payload["review"])
         for event in history
         if event.event_type is EventType.SPECIALIST_REVIEW
     )
+    reports = all_reports[-limit:]
+    reviews = all_reviews[-limit:]
     candidate_hypotheses = tuple(
         SpecialistHypothesisRef(
             specialist_id=report.specialist_id,
@@ -56,4 +60,6 @@ def build_cognitive_synthesis(
         reviews=reviews,
         candidate_hypotheses=candidate_hypotheses,
         flagged_contradictions=flagged,
+        omitted_report_count=len(all_reports) - len(reports),
+        omitted_review_count=len(all_reviews) - len(reviews),
     )

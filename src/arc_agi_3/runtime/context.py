@@ -6,7 +6,7 @@ from arc_agi_3.config import AblationConfig
 from arc_agi_3.context import compact_context_event, context_event, summarize_episode
 from arc_agi_3.context.projection_keys import HIDDEN_IN_CONTEXT
 from arc_agi_3.contracts.decision import AgentContext
-from arc_agi_3.contracts.enums import TaskStatus
+from arc_agi_3.contracts.enums import EventType, TaskStatus
 from arc_agi_3.contracts.epistemic import ContextStats
 from arc_agi_3.contracts.observation import Observation
 from arc_agi_3.recovery import reconstruct_recovery
@@ -36,6 +36,11 @@ def project_context(
     )
     recent_ids = {event.event_id for event in recent}
     older = [event for event in history if event.event_id not in recent_ids]
+    known_event_ids = tuple(
+        sorted(
+            e.event_id for e in history if e.event_type is not EventType.MODEL_DECISION
+        )
+    )
     project = compact_context_event if context_compaction else context_event
     task_views = workspace.tasks.views() if ablations.tasks else ()
     epistemic = epistemic_fields(history, observation, workspace, ablations)
@@ -88,5 +93,7 @@ def project_context(
             history, observation.observation_hash
         ),
         compact_observation=compact_observation,
+        known_event_ids=known_event_ids,
+        scratchpad_token_budget=workspace.scratchpad.token_budget,
         **epistemic,
     )

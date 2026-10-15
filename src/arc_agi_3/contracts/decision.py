@@ -48,6 +48,8 @@ class AgentContext(Contract):
     latest_verification: VerificationResult | None = None
     hypothesis_ledger: tuple[HypothesisLedgerEntry, ...] = ()
     hypothesis_versions: dict[str, int] = Field(default_factory=dict)
+    known_event_ids: tuple[str, ...] = ()
+    scratchpad_token_budget: int = Field(default=2048, gt=0)
     unresolved_contradictions: tuple[str, ...] = ()
     action_evidence: tuple[ActionEvidence, ...] = ()
     tool_evidence: tuple[ToolRequestEvidence, ...] = ()

@@ -25,3 +25,5 @@ class CognitiveSynthesis(Contract):
     reviews: tuple[SpecialistReview, ...] = ()
     candidate_hypotheses: tuple[SpecialistHypothesisRef, ...] = ()
     flagged_contradictions: tuple[str, ...] = ()
+    omitted_report_count: int = 0
+    omitted_review_count: int = 0
