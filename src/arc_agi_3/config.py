@@ -61,6 +61,7 @@ class AblationConfig(Contract):
     prediction_verification: bool = True
     selective_retrieval: bool = True
     multi_candidate_inference: bool = True
+    executable_models: bool = True
 
 
 class RunConfig(Contract):
