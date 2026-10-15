@@ -227,6 +227,18 @@ store failed-output hashes and validation errors, not raw model output. Set
 `persist_invalid_model_output=true` only for debugging to include a bounded
 512-character preview in run artifacts. No private chain-of-thought is shown.
 
+## Baseline comparison
+
+`uv run arc-agi-3 research compare-runs CONTROL_DIR CANDIDATE_DIR --output
+comparison.json [--markdown comparison.md]` builds a `BaselineReport` for
+each run directory (reusing the same trace/evaluator pipeline as
+`export-run`) and writes a control-vs-candidate delta report. Counters that
+depend on an optional subsystem being configured at all (for example the
+ExoCortex specialist counters) are `null`/`not observed` when that subsystem
+was never wired in for a run, distinct from a real `0` when it was
+configured but produced no activity — deltas involving a missing side are
+also `null`, never silently treated as `0`.
+
 ## Validation
 
 Run `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`,

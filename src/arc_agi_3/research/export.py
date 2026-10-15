@@ -5,19 +5,27 @@ import json
 from pathlib import Path
 
 from arc_agi_3.config import EvaluatorConfig
+from arc_agi_3.contracts.evaluation import EvaluationMetrics
+from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.evaluation import evaluate
 from arc_agi_3.manifest import RunManifest
 from arc_agi_3.trace.canonical import canonical_json
 from arc_agi_3.trace.store import JsonlEventStore
 
 
-def run_row(run_dir: Path) -> dict[str, object]:
+def load_run(
+    run_dir: Path,
+) -> tuple[RunManifest, list[EventEnvelope], EvaluationMetrics]:
     manifest_path = run_dir / "manifest.json"
     trace_path = run_dir / "events.jsonl"
     manifest = RunManifest.model_validate_json(manifest_path.read_text())
     events = JsonlEventStore(trace_path, "export", "export", "export").read()
     evaluator = EvaluatorConfig.model_validate(manifest.config.get("evaluator", {}))
-    metrics = evaluate(events, evaluator)
+    return manifest, events, evaluate(events, evaluator)
+
+
+def run_row(run_dir: Path) -> dict[str, object]:
+    manifest, events, metrics = load_run(run_dir)
     seed = manifest.config.get("seed", 0)
     return {
         "run_id": manifest.run_id,
