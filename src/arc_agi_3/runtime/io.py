@@ -10,6 +10,7 @@ from arc_agi_3.contracts.decision import AgentContext
 from arc_agi_3.contracts.enums import EventType, Resource
 from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.contracts.observation import Observation
+from arc_agi_3.evidence.tool_cache import ToolResultCache
 from arc_agi_3.recovery import BranchTracker
 from arc_agi_3.trace.checkpoints import CheckpointStore
 from arc_agi_3.trace.store import JsonlEventStore
@@ -37,6 +38,7 @@ class EpisodeIO:
             config.belief, capabilities, config.scratchpad_token_budget
         )
         self.branches = BranchTracker(config.branch_id)
+        self.tool_cache = ToolResultCache()
 
     def append(
         self,
@@ -52,11 +54,7 @@ class EpisodeIO:
         )
 
     def spend(
-        self,
-        resource: Resource,
-        amount: int,
-        step: int,
-        causes: tuple[str, ...] = (),
+        self, resource: Resource, amount: int, step: int, causes: tuple[str, ...] = ()
     ) -> EventEnvelope:
         self.ledger.spend(resource, amount)
         payload: dict[str, JsonValue] = {"resource": resource, "amount": amount}
