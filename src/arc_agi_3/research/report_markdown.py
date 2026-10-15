@@ -25,9 +25,14 @@ def render_markdown(comparison: ReportComparison) -> str:
         _provenance("control", comparison.control),
         _provenance("candidate", comparison.candidate),
         "",
-        "| metric | control | candidate | delta |",
-        "|---|---|---|---|",
+        f"_{comparison.sample_size_note}_",
+        "",
     ]
+    if comparison.comparability_warnings:
+        lines.append("**Comparability warnings:**")
+        lines.extend(f"- {warning}" for warning in comparison.comparability_warnings)
+        lines.append("")
+    lines.extend(["| metric | control | candidate | delta |", "|---|---|---|---|"])
     lines.extend(
         f"| {delta.name} | {_cell(delta.control)} | {_cell(delta.candidate)} "
         f"| {_cell(delta.delta)} |"

@@ -18,3 +18,5 @@ class ReportComparison(Contract):
     control: BaselineReport
     candidate: BaselineReport
     deltas: tuple[MetricDelta, ...]
+    comparability_warnings: tuple[str, ...] = ()
+    sample_size_note: str = "n=1 run per side; no uncertainty estimate"

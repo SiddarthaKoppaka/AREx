@@ -3,6 +3,8 @@
 from arc_agi_3.contracts.baseline_report import BaselineReport
 from arc_agi_3.contracts.report_comparison import MetricDelta, ReportComparison
 
+from .report_comparability import check_comparable
+
 _METRIC_FIELDS = (
     "model_calls",
     "input_tokens",
@@ -55,4 +57,9 @@ def compare_reports(
         )
         for name in _EXOCORTEX_FIELDS
     )
-    return ReportComparison(control=control, candidate=candidate, deltas=tuple(deltas))
+    return ReportComparison(
+        control=control,
+        candidate=candidate,
+        deltas=tuple(deltas),
+        comparability_warnings=check_comparable(control, candidate),
+    )
