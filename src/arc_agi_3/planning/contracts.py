@@ -17,12 +17,22 @@ class SearchBudget(Contract):
 
 class SearchRequest(Contract):
     search_id: str
-    model_id: str
+    model_id: str = Field(
+        description=(
+            "Must match an existing world_model_updates entry from an "
+            "earlier decision; this tool does not create a model."
+        )
+    )
     model_version: int = Field(ge=1)
     method: SearchMethod
     objective: str = Field(min_length=1)
     start_state: SymbolicState
-    goal_facts: dict[str, JsonValue]
+    goal_facts: dict[str, JsonValue] = Field(
+        description=(
+            "Facts the search treats as satisfying the objective - a "
+            "subset of a reachable SymbolicState.facts."
+        )
+    )
     heuristic_weights: dict[str, float] = Field(default_factory=dict)
     budget: SearchBudget
 

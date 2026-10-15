@@ -48,7 +48,12 @@ class WorldModel(Contract):
 
 
 class SimulationRequest(Contract):
-    model_id: str
+    model_id: str = Field(
+        description=(
+            "Must match an existing world_model_updates entry from an "
+            "earlier decision; this tool does not create a model."
+        )
+    )
     model_version: int = Field(ge=1)
     initial_state: SymbolicState
     actions: tuple[Action, ...] = Field(min_length=1, max_length=256)

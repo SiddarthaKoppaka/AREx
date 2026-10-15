@@ -43,8 +43,10 @@ def tool_request_evidence(
         groups.setdefault(key, []).append(event)
         requests.setdefault(key, request)
         observation_at[event.event_id] = active_observation
+    ordered = sorted(groups, key=lambda key: groups[key][-1].sequence, reverse=True)
     table: list[ToolRequestEvidence] = []
-    for key, events in list(groups.items())[:limit]:
+    for key in ordered[:limit]:
+        events = groups[key]
         request = requests[key]
         from_current = sum(
             observation_at.get(e.event_id) == current_observation_event_id

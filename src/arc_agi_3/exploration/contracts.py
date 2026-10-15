@@ -14,7 +14,12 @@ class ExplorationWeights(Contract):
 class ProbeEstimate(Contract):
     probe_id: str
     candidate_state_hash: str | None = None
-    drig: float
+    drig: float = Field(
+        description=(
+            "Estimated information gain from this probe, in the same units "
+            "weights.information is meant to price - not a measured value."
+        )
+    )
     expected_reward_progress: float
     hypothesis_discrimination: float
     action_cost: float = Field(ge=0)
@@ -31,7 +36,15 @@ class ExplorationRequest(Contract):
     executable_plan_utility: float
     safety_margin: float = Field(default=0, ge=0)
     recent_marginal_values: tuple[float, ...] = ()
-    saturation_window: int = Field(default=3, gt=0)
+    saturation_window: int = Field(
+        default=3,
+        gt=0,
+        description=(
+            "How many of the most recent recorded marginal values must be "
+            "at or below saturation_threshold for `saturated` to report "
+            "exploration has stopped paying off."
+        ),
+    )
     saturation_threshold: float = 0.0
 
 
