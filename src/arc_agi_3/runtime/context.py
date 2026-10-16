@@ -7,11 +7,11 @@ from arc_agi_3.context import compact_context_event, context_event, summarize_ep
 from arc_agi_3.context.projection_keys import HIDDEN_IN_CONTEXT
 from arc_agi_3.contracts.decision import AgentContext
 from arc_agi_3.contracts.enums import EventType, TaskStatus
-from arc_agi_3.contracts.epistemic import ContextStats
 from arc_agi_3.contracts.observation import Observation
 from arc_agi_3.recovery import reconstruct_recovery
 from arc_agi_3.trace.store import JsonlEventStore
 
+from .context_stats import context_stats
 from .recent_events import current_observation_event_id, event_view, recent_turn_events
 from .working_set import epistemic_fields
 
@@ -64,18 +64,7 @@ def project_context(
     recent_window = not context_compaction or (
         recovery is not None and recovery.divergence_event_id in recent_ids
     )
-    stats = ContextStats(
-        recent_events_included=len(recent),
-        history_events=len(history),
-        episodic_items_included=len(memory.items) if memory else 0,
-        episodic_step_ids=tuple(item.step_id for item in memory.items)
-        if memory
-        else (),
-        episodic_query=query[:240],
-        hypotheses_included=len(epistemic.get("hypotheses", ())),
-        omitted_hypothesis_ids=omitted,
-        consecutive_no_novelty_tool_turns=epistemic.pop("no_novelty_streak", 0),
-    )
+    stats = context_stats(history, memory, query, epistemic, omitted, len(recent))
     return AgentContext(
         turn=turn,
         observation=observation,

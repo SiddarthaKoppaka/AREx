@@ -60,6 +60,21 @@ def current_no_novelty_streak(events: list[EventEnvelope]) -> int:
     return current
 
 
+def tool_requests_since_last_action(events: list[EventEnvelope]) -> int:
+    """Consecutive tool requests since the last real environment action, as
+    of right now - read live into `ContextStats.tool_requests_since_last_
+    action` so the model can see its own tool-eagerness; nothing acts on
+    this number automatically. 0 at episode start and immediately after an
+    action."""
+    count = 0
+    for event in reversed(events):
+        if event.event_type is EventType.ACTION:
+            break
+        if event.event_type is EventType.TOOL_REQUEST:
+            count += 1
+    return count
+
+
 def tool_repeat_counts(events: list[EventEnvelope]) -> dict[str, int]:
     total, unique, repeated, unjustified, novelty_by_turn = _novelty_pass(events)
     _, longest = _streaks(novelty_by_turn)

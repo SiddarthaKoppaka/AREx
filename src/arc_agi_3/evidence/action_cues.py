@@ -65,3 +65,22 @@ def action_evidence(
             )
         )
     return tuple(table)
+
+
+def untried_actions_from_current_state(
+    records: list[TransitionRecord], observation: Observation
+) -> tuple[int, ...]:
+    """Actions legal here that have never been tried from this exact
+    observation - a direct answer, instead of requiring the model to scan
+    `action_evidence`'s (`limit`-truncated) per-action table and check
+    `attempts_from_current_state == 0` on each row itself. Action 6
+    (click) is excluded, same as `action_evidence`: it needs x/y
+    coordinates that `observation.available_actions` doesn't enumerate."""
+    tried_here = {
+        record.action.action_id
+        for record in records
+        if record.before_hash == observation.observation_hash
+    }
+    return tuple(
+        a for a in observation.available_actions if a != 6 and a not in tried_here
+    )

@@ -93,3 +93,5 @@ class ContextStats(Contract):
     hypotheses_included: int = Field(default=0, ge=0)
     omitted_hypothesis_ids: tuple[str, ...] = ()
     consecutive_no_novelty_tool_turns: int = Field(default=0, ge=0)
+    tool_requests_since_last_action: int = Field(default=0, ge=0)
+    untried_actions_from_current_state: tuple[int, ...] = ()

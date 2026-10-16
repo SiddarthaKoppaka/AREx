@@ -48,6 +48,7 @@ class EvaluationMetrics(Contract):
     specialist_reviews_generated: int = Field(default=0, ge=0)
     exocortex_backend_generations: int = Field(default=0, ge=0)
     flagged_contradictions_raised: int = Field(default=0, ge=0)
+    specialist_structured_output_failures: int = Field(default=0, ge=0)
     tool_requests: int = Field(default=0, ge=0)
     unique_tool_requests: int = Field(default=0, ge=0)
     repeated_tool_requests: int = Field(default=0, ge=0)
