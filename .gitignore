@@ -40,3 +40,5 @@ tmp/
 # Notebook and operating-system noise
 .ipynb_checkpoints/
 .DS_Store
+AREx*.ipynb
+
