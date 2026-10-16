@@ -10,7 +10,9 @@ from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.evidence import tool_fingerprint
 
 
-def tool_repeat_counts(events: list[EventEnvelope]) -> dict[str, int]:
+def _novelty_pass(
+    events: list[EventEnvelope],
+) -> tuple[int, int, int, int, dict[int, bool]]:
     seen: dict[str, str | None] = {}
     active_observation: str | None = None
     total = unique = repeated = unjustified = 0
@@ -36,10 +38,31 @@ def tool_repeat_counts(events: list[EventEnvelope]) -> dict[str, int]:
             novelty_by_turn.get(event.step_id, False) or novel
         )
         seen[fingerprint] = active_observation
+    return total, unique, repeated, unjustified, novelty_by_turn
+
+
+def _streaks(novelty_by_turn: dict[int, bool]) -> tuple[int, int]:
+    """Returns (current trailing streak, longest streak ever)."""
     streak = longest = 0
     for step in sorted(novelty_by_turn):
         streak = 0 if novelty_by_turn[step] else streak + 1
         longest = max(longest, streak)
+    return streak, longest
+
+
+def current_no_novelty_streak(events: list[EventEnvelope]) -> int:
+    """How many of the most recent consecutive turns produced zero novel
+    tool request, as of right now - read live into `AgentContext`
+    (`ContextStats.consecutive_no_novelty_tool_turns`) so the model can see
+    it; nothing acts on this number automatically."""
+    _, _, _, _, novelty_by_turn = _novelty_pass(events)
+    current, _ = _streaks(novelty_by_turn)
+    return current
+
+
+def tool_repeat_counts(events: list[EventEnvelope]) -> dict[str, int]:
+    total, unique, repeated, unjustified, novelty_by_turn = _novelty_pass(events)
+    _, longest = _streaks(novelty_by_turn)
     return {
         "tool_requests": total,
         "unique_tool_requests": unique,

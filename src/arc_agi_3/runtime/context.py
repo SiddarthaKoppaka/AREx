@@ -74,6 +74,7 @@ def project_context(
         episodic_query=query[:240],
         hypotheses_included=len(epistemic.get("hypotheses", ())),
         omitted_hypothesis_ids=omitted,
+        consecutive_no_novelty_tool_turns=epistemic.pop("no_novelty_streak", 0),
     )
     return AgentContext(
         turn=turn,

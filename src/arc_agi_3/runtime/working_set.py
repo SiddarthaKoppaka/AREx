@@ -8,6 +8,7 @@ from arc_agi_3.contracts.events import EventEnvelope
 from arc_agi_3.contracts.observation import Observation
 from arc_agi_3.contracts.transition import TransitionEvidence
 from arc_agi_3.contracts.verification import VerificationResult
+from arc_agi_3.evaluation_tool_repeats import current_no_novelty_streak
 from arc_agi_3.evidence import (
     action_evidence,
     build_cognitive_synthesis,
@@ -37,6 +38,7 @@ def epistemic_fields(
         "action_evidence": action_evidence(records, targets, observation),
         "cognitive_synthesis": build_cognitive_synthesis(history),
         "tool_evidence": tool_request_evidence(history, current_observation),
+        "no_novelty_streak": current_no_novelty_streak(history),
     }
     if records:
         latest = records[-1]

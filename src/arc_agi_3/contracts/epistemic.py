@@ -92,3 +92,4 @@ class ContextStats(Contract):
     episodic_query: str = ""
     hypotheses_included: int = Field(default=0, ge=0)
     omitted_hypothesis_ids: tuple[str, ...] = ()
+    consecutive_no_novelty_tool_turns: int = Field(default=0, ge=0)
