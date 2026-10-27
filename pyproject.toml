@@ -56,7 +56,7 @@ strict = true
 packages = ["arc_agi_3"]
 
 [[tool.mypy.overrides]]
-module = ["arcengine", "arcengine.*", "pyarrow", "pyarrow.*"]
+module = ["arcengine", "arcengine.*", "pyarrow", "pyarrow.*", "agents", "agents.*", "arc_agi", "arc_agi.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
