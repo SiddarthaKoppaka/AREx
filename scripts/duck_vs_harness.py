@@ -27,7 +27,7 @@ from arc_agi_3.runtime.factory import build_runner
 
 MODEL = os.environ.get("DUCK_MODEL_NAME", "google/gemma-4-31b-it")
 ROOT = Path("arc-prize-2026-arc-agi-3/environment_files")
-OUT = Path("runs/compare")
+OUT = Path(os.environ.get("DUCK_OUT", "runs/compare"))
 
 
 def environment(game: str) -> ArcEnvironmentAdapter:

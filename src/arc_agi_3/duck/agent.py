@@ -3,6 +3,7 @@
 import json
 import re
 
+from arc_agi_3.contracts.enums import EnvironmentState
 from arc_agi_3.contracts.observation import Action, Observation
 
 from .chat import ChatBackend, Message
@@ -53,10 +54,18 @@ class DuckAgent:
         self.history.observed(total)
         self.turn.begin(obs, grid, self.prev)
         self.prev = grid
+        if obs.state is EnvironmentState.GAME_OVER and 0 in obs.available_actions:
+            return self._reset()  # only RESET is legal: no model call needed
         report = observation_report(obs, self.dead.dead, self.history.note())
         self._say("user", report, render_png(grid) if self.use_images else None)
         action = self._act() or self._fallback(obs, grid)
         self.dead.decided(grid, action)
+        self.history.decided(action)
+        self._trace({"action": action.model_dump(exclude={"schema_version"})})
+        return action
+
+    def _reset(self) -> Action:
+        action = Action(action_id=0)
         self.history.decided(action)
         self._trace({"action": action.model_dump(exclude={"schema_version"})})
         return action

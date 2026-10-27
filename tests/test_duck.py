@@ -143,3 +143,17 @@ def test_describe_diff_groups_by_color_change() -> None:
     assert "7->0: 1 cells, rows 1-1, cols 1-1" in text
     assert describe_diff(GRID, GRID) == "no cells changed"
     assert describe_diff(None, GRID) == "no previous frame"
+
+
+def test_game_over_resets_without_a_model_call() -> None:
+    chat = Scripted()
+    over = Observation.build(
+        game_id="g",
+        frame=[GRID],
+        state="GAME_OVER",
+        levels_completed=0,
+        win_levels=2,
+        available_actions=(0,),
+    )
+    assert DuckAgent(chat).decide(over).action_id == 0  # type: ignore[arg-type]
+    assert chat.seen == []
